@@ -28,9 +28,8 @@ Three interrelated projects managed with [swamp](https://github.com/systeminit/s
 2. **Extend, don't be clever.** Don't work around a missing capability with shell scripts or multi-step hacks. Add a method to the extension model. One method, one purpose.
 3. **Use the data model.** Once data exists in a model (via `lookup`, `start`, `sync`, etc.), reference it with CEL expressions. Don't re-fetch data that's already available.
 4. **CEL expressions everywhere.** Wire models together with CEL. Known VMs: `${{ model.fleet.resource.vm["allthemons"].attributes.ip }}`. Dynamic VMs: `${{ model.fleet.resource.vm[inputs.vmName].attributes.ip }}`. Secrets: `${{ vault.get("vault-name", "key") }}`.
-5. **Never manually edit `.swamp/` files.** Always use swamp CLI commands.
-6. **One fleet per concern.** The `fleet` definition manages all VMs. A `docker/compose` model manages Docker services. Don't mix concerns.
-7. **Verify vmid before ANY destructive operation.** Always `swamp model get <name> --json` and check vmid before running delete/stop/destroy methods. Never assume based on name alone.
+5. **One fleet per concern.** The `fleet` definition manages all VMs. A `docker/compose` model manages Docker services. Don't mix concerns.
+6. **Verify vmid before ANY destructive operation.** Always `swamp model get <name> --json` and check vmid before running delete/stop/destroy methods. Never assume based on name alone.
 
 ## Workflows
 
