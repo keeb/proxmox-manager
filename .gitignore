@@ -21,9 +21,6 @@ swamp/workflows/
 swamp/vaults/
 swamp/resources/
 
-# Legacy
-.vault-*/
-
 # Claude Code (local settings, skills, tool config)
 .claude/
 
