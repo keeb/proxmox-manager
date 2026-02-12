@@ -11,12 +11,6 @@ swamp/.swamp/definitions-evaluated/
 swamp/.swamp/workflows-evaluated/
 swamp/.swamp/inputs-evaluated/
 
-# Swamp legacy (stale artifacts from deleted models)
-swamp/.swamp/inputs/
-
-# Swamp empty placeholders
-swamp/.swamp/resources/
-
 # Secrets and encryption (defense in depth — .key under vault too)
 swamp/.swamp/secrets/
 swamp/.swamp/vault/**/.key
