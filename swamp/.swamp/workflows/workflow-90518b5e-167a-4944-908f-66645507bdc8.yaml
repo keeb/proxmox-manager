@@ -1,0 +1,66 @@
+id: 90518b5e-167a-4944-908f-66645507bdc8
+name: stop-calamity
+description: Stop the calamity Terraria server
+jobs:
+  - name: main
+    description: Auth, look up calamity VM via fleet, warn players, stop containers, stop VM
+    steps:
+      - name: auth
+        description: Authenticate with Proxmox via keebDev02
+        task:
+          type: model_method
+          modelIdOrName: keebDev02
+          methodName: auth
+        dependsOn: []
+        weight: 0
+      - name: lookup
+        description: Look up calamity VM and get IP
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: lookup
+          inputs:
+            vmName: calamity
+        dependsOn:
+          - step: auth
+            condition:
+              type: succeeded
+        weight: 0
+      - name: warn-players
+        description: Broadcast shutdown warning to Terraria players
+        task:
+          type: model_method
+          modelIdOrName: calamityTerraria
+          methodName: warnShutdown
+        dependsOn:
+          - step: lookup
+            condition:
+              type: succeeded
+        weight: 0
+      - name: stop-terraria
+        description: Stop Docker Compose services
+        task:
+          type: model_method
+          modelIdOrName: calamity
+          methodName: stop
+        dependsOn:
+          - step: warn-players
+            condition:
+              type: succeeded
+        weight: 0
+      - name: stop-vm
+        description: Shut down the VM
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: stop
+          inputs:
+            vmName: calamity
+        dependsOn:
+          - step: stop-terraria
+            condition:
+              type: succeeded
+        weight: 0
+    dependsOn: []
+    weight: 0
+version: 1

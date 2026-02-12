@@ -1,0 +1,8 @@
+{
+  "tasks": {
+    "start": "deno run --allow-net --allow-env --allow-read --allow-run main.ts"
+  },
+  "imports": {
+    "discord.js": "npm:discord.js@14"
+  }
+}

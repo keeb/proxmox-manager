@@ -1,0 +1,66 @@
+id: 1fa9c0a8-789d-4a07-9b4e-6e84c9fead23
+name: stop-allthemons
+description: Stop the allthemons Minecraft server
+jobs:
+  - name: main
+    description: Auth, look up allthemons via fleet, warn players, stop Minecraft, stop VM
+    steps:
+      - name: auth
+        description: Authenticate with Proxmox via keebDev02
+        task:
+          type: model_method
+          modelIdOrName: keebDev02
+          methodName: auth
+        dependsOn: []
+        weight: 0
+      - name: lookup
+        description: Find allthemons VM by name and populate vmid/IP
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: lookup
+          inputs:
+            vmName: allthemons
+        dependsOn:
+          - step: auth
+            condition:
+              type: succeeded
+        weight: 0
+      - name: warn-players
+        description: Broadcast shutdown warning to Minecraft players
+        task:
+          type: model_method
+          modelIdOrName: allthemonsMinecraft
+          methodName: warnShutdown
+        dependsOn:
+          - step: lookup
+            condition:
+              type: succeeded
+        weight: 0
+      - name: stop-minecraft
+        description: Gracefully stop Minecraft server process
+        task:
+          type: model_method
+          modelIdOrName: allthemonsMinecraft
+          methodName: stopMinecraftServer
+        dependsOn:
+          - step: warn-players
+            condition:
+              type: succeeded
+        weight: 0
+      - name: stop-vm
+        description: Shut down the VM
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: stop
+          inputs:
+            vmName: allthemons
+        dependsOn:
+          - step: stop-minecraft
+            condition:
+              type: succeeded
+        weight: 0
+    dependsOn: []
+    weight: 0
+version: 1

@@ -1,0 +1,31 @@
+id: d835c85f-0f35-4f9b-ac8b-3eaa8f4639ba
+name: destroy-slate
+description: Stop and delete the slate VM
+jobs:
+  - name: destroy
+    description: Auth, then stop and delete the slate VM via fleet
+    steps:
+      - name: auth
+        description: Authenticate with Proxmox via keebDev02
+        task:
+          type: model_method
+          modelIdOrName: keebDev02
+          methodName: auth
+        dependsOn: []
+        weight: 0
+      - name: destroy-slate
+        description: Stop and delete slate VM
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: delete
+          inputs:
+            vmName: slate
+        dependsOn:
+          - step: auth
+            condition:
+              type: succeeded
+        weight: 0
+    dependsOn: []
+    weight: 0
+version: 1

@@ -1,0 +1,74 @@
+id: dda7800b-d989-4370-91a8-7ca6d6e6326c
+name: vm-lifecycle-test
+description: 'Test VM lifecycle - create, start, stop, delete using fleet with inputs'
+jobs:
+  - name: lifecycle
+    description: Complete VM lifecycle test
+    steps:
+      - name: auth
+        description: Authenticate with Proxmox
+        task:
+          type: model_method
+          modelIdOrName: keebDev02
+          methodName: auth
+        dependsOn: []
+        weight: 0
+      - name: create-vm
+        description: Create a test VM with PXE boot
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: create
+          inputs:
+            vmName: test-lifecycle-vm
+            memory: 1024
+            cores: 1
+            sockets: 1
+            diskSize: 0
+        dependsOn:
+          - step: auth
+            condition:
+              type: succeeded
+        weight: 0
+      - name: start-vm
+        description: Start the created VM
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: start
+          inputs:
+            vmName: test-lifecycle-vm
+        dependsOn:
+          - step: create-vm
+            condition:
+              type: succeeded
+        weight: 0
+      - name: stop-vm
+        description: Stop the running VM
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: stop
+          inputs:
+            vmName: test-lifecycle-vm
+        dependsOn:
+          - step: start-vm
+            condition:
+              type: succeeded
+        weight: 0
+      - name: delete-vm
+        description: Delete the test VM
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: delete
+          inputs:
+            vmName: test-lifecycle-vm
+        dependsOn:
+          - step: stop-vm
+            condition:
+              type: succeeded
+        weight: 0
+    dependsOn: []
+    weight: 0
+version: 1

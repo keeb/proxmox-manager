@@ -1,0 +1,10 @@
+type: "@user/docker/compose"
+typeVersion: 1
+id: dfc613b0-8e17-42f6-887f-59c54a3c0b17
+name: calamity
+version: 1
+tags: {}
+globalArguments:
+  sshHost: '${{ model.fleet.resource.vm["calamity"].attributes.ip }}'
+  sshUser: root
+  composePath: ~/game/

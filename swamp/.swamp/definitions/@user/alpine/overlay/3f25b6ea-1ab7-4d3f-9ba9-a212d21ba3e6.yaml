@@ -1,0 +1,14 @@
+type: "@user/alpine/overlay"
+typeVersion: 1
+id: 3f25b6ea-1ab7-4d3f-9ba9-a212d21ba3e6
+name: goldImageOverlay
+version: 1
+tags: {}
+globalArguments:
+  sshHost: '${{ model.fleet.resource.vm["gold-image"].attributes.ip }}'
+  sshUser: root
+methods:
+  deployApkovl:
+    arguments:
+      tftpHost: 10.0.0.191
+      tftpPath: /srv/http/alpine

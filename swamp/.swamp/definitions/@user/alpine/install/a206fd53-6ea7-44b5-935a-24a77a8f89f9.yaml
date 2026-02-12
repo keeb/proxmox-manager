@@ -1,0 +1,14 @@
+type: "@user/alpine/install"
+typeVersion: 2026.02.10.0
+id: a206fd53-6ea7-44b5-935a-24a77a8f89f9
+name: alpineInstaller
+version: 1
+tags: {}
+globalArguments:
+  sshHost: '${{ model.fleet.resource.vm[inputs.vmName].attributes.ip }}'
+  sshUser: root
+methods:
+  install:
+    arguments:
+      hostname: '${{ inputs.vmName }}'
+      password: '${{ vault.get("proxmox-vault", "password") }}'

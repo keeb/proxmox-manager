@@ -1,0 +1,90 @@
+id: 80d5b703-e226-41b5-9cdc-2d261c37e8d7
+name: reboot-allthemons
+description: Reboot the allthemons Minecraft server
+jobs:
+  - name: main
+    description: Auth, gracefully stop Minecraft, stop VM, restart and start Minecraft
+    steps:
+      - name: auth
+        description: Authenticate with Proxmox via keebDev02
+        task:
+          type: model_method
+          modelIdOrName: keebDev02
+          methodName: auth
+        dependsOn: []
+        weight: 0
+      - name: lookup
+        description: Find allthemons VM by name and populate vmid/IP
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: lookup
+          inputs:
+            vmName: allthemons
+        dependsOn:
+          - step: auth
+            condition:
+              type: succeeded
+        weight: 0
+      - name: warn-players
+        description: Broadcast shutdown warning to Minecraft players
+        task:
+          type: model_method
+          modelIdOrName: allthemonsMinecraft
+          methodName: warnShutdown
+        dependsOn:
+          - step: lookup
+            condition:
+              type: succeeded
+        weight: 0
+      - name: stop-minecraft
+        description: Gracefully stop Minecraft server process
+        task:
+          type: model_method
+          modelIdOrName: allthemonsMinecraft
+          methodName: stopMinecraftServer
+        dependsOn:
+          - step: warn-players
+            condition:
+              type: succeeded
+        weight: 0
+      - name: stop-vm
+        description: Shut down the VM
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: stop
+          inputs:
+            vmName: allthemons
+        dependsOn:
+          - step: stop-minecraft
+            condition:
+              type: succeeded
+        weight: 0
+      - name: ensure-vm-running
+        description: Start allthemons VM and wait for IP
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: start
+          inputs:
+            vmName: allthemons
+        dependsOn:
+          - step: stop-vm
+            condition:
+              type: succeeded
+        weight: 0
+      - name: start-minecraft
+        description: Start Minecraft server and wait for ready
+        task:
+          type: model_method
+          modelIdOrName: allthemonsMinecraft
+          methodName: startMinecraftServer
+        dependsOn:
+          - step: ensure-vm-running
+            condition:
+              type: succeeded
+        weight: 0
+    dependsOn: []
+    weight: 0
+version: 1

@@ -1,0 +1,13 @@
+type: "@user/proxmox/node"
+typeVersion: 1
+id: 410be48e-9adf-4bf1-ac5f-440e9cb14332
+name: keebDev02
+version: 1
+tags: {}
+globalArguments:
+  apiUrl: 'https://10.0.0.4:8006'
+  username: root
+  password: '${{ vault.get("proxmox-vault", "password") }}'
+  realm: pam
+  node: keeb-dev-02
+  skipTlsVerify: true

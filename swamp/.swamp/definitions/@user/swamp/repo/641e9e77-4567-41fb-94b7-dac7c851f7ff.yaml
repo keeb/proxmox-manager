@@ -1,0 +1,17 @@
+type: '@user/swamp/repo'
+typeVersion: 2026.02.11.1
+id: 641e9e77-4567-41fb-94b7-dac7c851f7ff
+name: swampRepo
+version: 1
+tags: {}
+globalArguments:
+  sshHost: '${{ model.fleet.resource.vm["slate"].attributes.ip }}'
+  sshUser: root
+  remoteDir: /opt/proxmox-manager
+methods:
+  syncCode:
+    arguments:
+      excludes: '["node_modules/", ".git/", "bot/swamp"]'
+  syncBinary:
+    arguments:
+      remotePath: bot/swamp

@@ -1,0 +1,12 @@
+type: '@user/proxmox/vm'
+typeVersion: 2026.02.11.1
+id: a2781eda-7b6f-4b21-9118-546e674055ab
+name: fleet
+version: 1
+tags: {}
+globalArguments:
+  apiUrl: 'https://10.0.0.4:8006'
+  ticket: '${{ model.keebDev02.resource.node.node.attributes.ticket }}'
+  csrfToken: '${{ model.keebDev02.resource.node.node.attributes.csrfToken }}'
+  node: keeb-dev-02
+  skipTlsVerify: true

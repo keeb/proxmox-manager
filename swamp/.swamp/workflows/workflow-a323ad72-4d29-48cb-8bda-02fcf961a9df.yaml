@@ -1,0 +1,28 @@
+id: a323ad72-4d29-48cb-8bda-02fcf961a9df
+name: status-allthemons
+description: Check Minecraft server status on allthemons
+version: 1
+jobs:
+  - name: main
+    description: Auth, lookup allthemons IP, then check Minecraft server status
+    steps:
+      - name: auth
+        description: Authenticate with Proxmox
+        task:
+          type: model_method
+          modelIdOrName: keebDev02
+          methodName: auth
+      - name: lookup-vm
+        description: Look up allthemons IP from fleet
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: lookup
+          inputs:
+            vmName: allthemons
+      - name: check-status
+        description: Check Minecraft server status
+        task:
+          type: model_method
+          modelIdOrName: allthemonsMinecraft
+          methodName: status

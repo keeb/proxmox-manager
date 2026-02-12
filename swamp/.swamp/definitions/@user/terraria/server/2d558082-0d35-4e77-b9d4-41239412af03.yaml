@@ -1,0 +1,10 @@
+type: "@user/terraria/server"
+typeVersion: 1
+id: 2d558082-0d35-4e77-b9d4-41239412af03
+name: calamityTerraria
+version: 1
+tags: {}
+globalArguments:
+  sshHost: '${{ model.fleet.resource.vm["calamity"].attributes.ip }}'
+  sshUser: root
+  containerName: tmodloader

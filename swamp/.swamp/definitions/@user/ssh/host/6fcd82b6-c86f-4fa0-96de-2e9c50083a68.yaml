@@ -1,0 +1,9 @@
+type: '@user/ssh/host'
+typeVersion: 2026.02.10.0
+id: 6fcd82b6-c86f-4fa0-96de-2e9c50083a68
+name: testVmSsh
+version: 1
+tags: {}
+globalArguments:
+  host: '${{ model.fleet.resource.vm[inputs.vmName].attributes.ip }}'
+  user: root

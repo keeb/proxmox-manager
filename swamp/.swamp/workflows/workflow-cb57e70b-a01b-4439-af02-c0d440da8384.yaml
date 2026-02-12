@@ -1,0 +1,28 @@
+id: cb57e70b-a01b-4439-af02-c0d440da8384
+name: status-calamity
+description: Check Terraria server status on calamity
+version: 1
+jobs:
+  - name: main
+    description: Auth, lookup calamity IP, then check Terraria server status
+    steps:
+      - name: auth
+        description: Authenticate with Proxmox
+        task:
+          type: model_method
+          modelIdOrName: keebDev02
+          methodName: auth
+      - name: lookup-vm
+        description: Look up calamity IP from fleet
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: lookup
+          inputs:
+            vmName: calamity
+      - name: check-status
+        description: Check Terraria server status
+        task:
+          type: model_method
+          modelIdOrName: calamityTerraria
+          methodName: status

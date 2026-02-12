@@ -1,0 +1,7 @@
+id: 1f834de2-06ba-4e35-8a6f-96356d541b55
+name: proxmox-vault
+type: local_encryption
+config:
+  auto_generate: true
+  base_dir: .
+createdAt: '2026-02-03T10:19:39.271Z'

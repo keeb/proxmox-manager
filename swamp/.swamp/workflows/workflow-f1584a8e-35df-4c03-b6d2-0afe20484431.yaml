@@ -1,0 +1,31 @@
+id: f1584a8e-35df-4c03-b6d2-0afe20484431
+name: start-gold-image
+description: Start the gold-image VM
+jobs:
+  - name: main
+    description: Auth, then start gold-image VM via fleet
+    steps:
+      - name: auth
+        description: Authenticate with Proxmox via keebDev02
+        task:
+          type: model_method
+          modelIdOrName: keebDev02
+          methodName: auth
+        dependsOn: []
+        weight: 0
+      - name: ensure-running
+        description: Start gold-image VM if not already running
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: start
+          inputs:
+            vmName: gold-image
+        dependsOn:
+          - step: auth
+            condition:
+              type: succeeded
+        weight: 0
+    dependsOn: []
+    weight: 0
+version: 1

@@ -1,0 +1,42 @@
+id: b05b41eb-63d0-45ce-8d07-5667c1b94e33
+name: update-calamity
+description: Update the calamity Terraria server
+jobs:
+  - name: main
+    description: Auth, ensure calamity VM is running, then pull and restart Docker Compose services
+    steps:
+      - name: auth
+        description: Authenticate with Proxmox via keebDev02
+        task:
+          type: model_method
+          modelIdOrName: keebDev02
+          methodName: auth
+        dependsOn: []
+        weight: 0
+      - name: ensure-vm-running
+        description: Start calamity VM if stopped and wait for IP
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: start
+          inputs:
+            vmName: calamity
+        dependsOn:
+          - step: auth
+            condition:
+              type: succeeded
+        weight: 0
+      - name: update-terraria
+        description: Pull latest images and restart services
+        task:
+          type: model_method
+          modelIdOrName: calamity
+          methodName: update
+        dependsOn:
+          - step: ensure-vm-running
+            condition:
+              type: succeeded
+        weight: 0
+    dependsOn: []
+    weight: 0
+version: 1

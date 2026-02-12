@@ -1,0 +1,13 @@
+type: "@user/tailscale/node"
+typeVersion: 2026.02.10.0
+id: 243b02e4-5b67-405b-b540-d62511a6ab44
+name: tailscaleNode
+version: 1
+tags: {}
+globalArguments:
+  sshHost: '${{ model.fleet.resource.vm[inputs.vmName].attributes.ip }}'
+  sshUser: root
+methods:
+  install:
+    arguments:
+      authKey: '${{ vault.get("proxmox-vault", "tailscaleAuthKey") }}'

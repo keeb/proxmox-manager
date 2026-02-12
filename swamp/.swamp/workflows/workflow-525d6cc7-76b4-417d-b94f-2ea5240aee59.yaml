@@ -1,0 +1,33 @@
+id: 525d6cc7-76b4-417d-b94f-2ea5240aee59
+name: delete-vm
+description: 'Delete a VM by name (stops if running, then deletes)'
+inputs:
+  vmName:
+    type: string
+    required: true
+    description: Name of the VM to delete
+jobs:
+  - name: delete
+    steps:
+      - name: auth
+        task:
+          type: model_method
+          modelIdOrName: keebDev02
+          methodName: auth
+        dependsOn: []
+        weight: 0
+      - name: delete-vm
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: delete
+          inputs:
+            vmName: '${{ inputs.vmName }}'
+        dependsOn:
+          - step: auth
+            condition:
+              type: succeeded
+        weight: 0
+    dependsOn: []
+    weight: 0
+version: 1

@@ -1,0 +1,28 @@
+type: '@user/docker/engine'
+typeVersion: 2026.02.11.2
+id: d028c220-63bd-4c93-b03c-4c22022fa34a
+name: slateDocker
+version: 1
+tags: {}
+globalArguments:
+  sshHost: '${{ model.fleet.resource.vm["slate"].attributes.ip }}'
+  sshUser: root
+methods:
+  build:
+    arguments:
+      imageTag: discord-bot
+      contextPath: /opt/proxmox-manager/bot
+  run:
+    arguments:
+      containerName: discord-bot
+      imageTag: discord-bot
+      restart: unless-stopped
+      volumes: '["/opt/proxmox-manager:/opt/proxmox-manager", "/root/.ssh:/root/.ssh:ro"]'
+      envFile: /opt/proxmox-manager/bot/.env
+      command: "sh -c 'cd /opt/proxmox-manager/bot && exec deno run --allow-net --allow-env --allow-read --allow-run main.ts'"
+  stop:
+    arguments:
+      containerName: discord-bot
+  inspect:
+    arguments:
+      containerName: discord-bot

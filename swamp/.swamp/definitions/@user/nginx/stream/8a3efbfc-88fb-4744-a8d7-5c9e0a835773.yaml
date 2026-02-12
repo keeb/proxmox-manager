@@ -1,0 +1,16 @@
+type: "@user/nginx/stream"
+typeVersion: 2026.02.10.0
+id: 8a3efbfc-88fb-4744-a8d7-5c9e0a835773
+name: treehouse
+version: 1
+tags: {}
+globalArguments:
+  sshHost: treehouse
+  sshUser: keeb
+  streamDir: ~/stream
+methods:
+  configure:
+    arguments:
+      vmName: '${{ inputs.vmName }}'
+      targetIp: '${{ inputs.targetIp }}'
+      portMap: '${{ inputs.portMap }}'

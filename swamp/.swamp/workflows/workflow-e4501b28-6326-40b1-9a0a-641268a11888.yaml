@@ -1,0 +1,42 @@
+id: e4501b28-6326-40b1-9a0a-641268a11888
+name: deploy-apkovl
+description: Package gold-image overlay and deploy to TFTP server
+jobs:
+  - name: main
+    description: Auth, ensure gold-image VM is running via fleet, then package and deploy overlay
+    steps:
+      - name: auth
+        description: Authenticate with Proxmox via keebDev02
+        task:
+          type: model_method
+          modelIdOrName: keebDev02
+          methodName: auth
+        dependsOn: []
+        weight: 0
+      - name: ensure-running
+        description: Start gold-image VM if not already running
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: start
+          inputs:
+            vmName: gold-image
+        dependsOn:
+          - step: auth
+            condition:
+              type: succeeded
+        weight: 0
+      - name: deploy
+        description: Package and deploy Alpine overlay
+        task:
+          type: model_method
+          modelIdOrName: goldImageOverlay
+          methodName: deployApkovl
+        dependsOn:
+          - step: ensure-running
+            condition:
+              type: succeeded
+        weight: 0
+    dependsOn: []
+    weight: 0
+version: 1

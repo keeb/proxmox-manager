@@ -1,0 +1,106 @@
+id: a6ab5f10-6872-4616-b0d6-e7583213a027
+name: deploy-bot
+description: Deploy Discord bot to slate VM
+jobs:
+  - name: main
+    description: Auth, sync code/binary, build image, write env, start container
+    steps:
+      - name: auth
+        description: Authenticate with Proxmox
+        task:
+          type: model_method
+          modelIdOrName: keebDev02
+          methodName: auth
+        dependsOn: []
+        weight: 0
+      - name: lookup-slate
+        description: Lookup slate VM to populate fleet resource
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: lookup
+          inputs:
+            vmName: slate
+        dependsOn:
+          - step: auth
+            condition:
+              type: succeeded
+        weight: 0
+      - name: sync-code
+        description: Rsync repo to remote host
+        task:
+          type: model_method
+          modelIdOrName: swampRepo
+          methodName: syncCode
+        dependsOn:
+          - step: lookup-slate
+            condition:
+              type: succeeded
+        weight: 0
+      - name: sync-binary
+        description: Copy swamp binary to remote host
+        task:
+          type: model_method
+          modelIdOrName: swampRepo
+          methodName: syncBinary
+        dependsOn:
+          - step: lookup-slate
+            condition:
+              type: succeeded
+        weight: 0
+      - name: sync-secrets
+        description: Sync vault secrets to remote
+        task:
+          type: model_method
+          modelIdOrName: swampRepo
+          methodName: syncSecrets
+        dependsOn:
+          - step: sync-code
+            condition:
+              type: succeeded
+        weight: 0
+      - name: build-image
+        description: Build Docker image on slate
+        task:
+          type: model_method
+          modelIdOrName: slateDocker
+          methodName: build
+        dependsOn:
+          - step: sync-code
+            condition:
+              type: succeeded
+          - step: sync-binary
+            condition:
+              type: succeeded
+        weight: 0
+      - name: write-env
+        description: Write .env file for the bot container
+        task:
+          type: model_method
+          modelIdOrName: testVmSsh
+          methodName: exec
+          inputs:
+            vmName: slate
+            command: 'printf "DISCORD_TOKEN=${{ vault.get("proxmox-vault", "discord-token") }}\nREQUIRED_ROLE=homie\nCOMMAND_PREFIX=!\n" > /opt/proxmox-manager/bot/.env'
+        dependsOn:
+          - step: sync-code
+            condition:
+              type: succeeded
+        weight: 0
+      - name: start-bot
+        description: Start bot container
+        task:
+          type: model_method
+          modelIdOrName: slateDocker
+          methodName: run
+        dependsOn:
+          - step: build-image
+            condition:
+              type: succeeded
+          - step: write-env
+            condition:
+              type: succeeded
+        weight: 0
+    dependsOn: []
+    weight: 0
+version: 1

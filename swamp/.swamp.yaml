@@ -1,0 +1,9 @@
+swampVersion: 20260206.200442.0
+initializedAt: '2026-02-01T21:06:34.393Z'
+vaults:
+  proxmox-vault:
+    type: local_encryption
+    config:
+      auto_generate: true
+upgradedAt: '2026-02-12T18:01:13.958Z'
+repoId: 921ecec9-12e2-41ca-b70a-0dadb1a19de2

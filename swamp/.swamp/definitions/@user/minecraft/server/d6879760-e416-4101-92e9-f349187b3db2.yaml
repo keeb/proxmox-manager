@@ -1,0 +1,9 @@
+type: "@user/minecraft/server"
+typeVersion: 1
+id: d6879760-e416-4101-92e9-f349187b3db2
+name: allthemonsMinecraft
+version: 1
+tags: {}
+globalArguments:
+  sshHost: '${{ model.fleet.resource.vm["allthemons"].attributes.ip }}'
+  sshUser: root

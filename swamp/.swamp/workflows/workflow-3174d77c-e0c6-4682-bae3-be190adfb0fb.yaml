@@ -1,0 +1,118 @@
+id: 3174d77c-e0c6-4682-bae3-be190adfb0fb
+name: create-stateful-vm
+description: 'Create VM, PXE boot, install Alpine to disk, set boot order, reboot from disk'
+inputs:
+  vmName:
+    type: string
+    required: true
+    description: Name for the new VM
+  memory:
+    type: number
+    required: true
+    description: RAM in MB
+  cores:
+    type: number
+    required: true
+    description: CPU cores
+  diskSize:
+    type: number
+    required: true
+    description: Disk size in GB
+jobs:
+  - name: provision
+    description: Full stateful VM provisioning
+    steps:
+      - name: auth
+        description: Authenticate with Proxmox via keebDev02
+        task:
+          type: model_method
+          modelIdOrName: keebDev02
+          methodName: auth
+        dependsOn: []
+        weight: 0
+      - name: create-vm
+        description: Create VM with persistent disk (PXE-first boot order)
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: create
+          inputs:
+            vmName: '${{ inputs.vmName }}'
+            memory: '${{ inputs.memory }}'
+            cores: '${{ inputs.cores }}'
+            diskSize: '${{ inputs.diskSize }}'
+        dependsOn:
+          - step: auth
+            condition:
+              type: succeeded
+        weight: 0
+      - name: start-vm
+        description: Start VM (PXE boots into diskless Alpine)
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: start
+          inputs:
+            vmName: '${{ inputs.vmName }}'
+        dependsOn:
+          - step: create-vm
+            condition:
+              type: succeeded
+        weight: 0
+      - name: install-alpine
+        description: Install Alpine to disk via setup-alpine + post-install chroot
+        task:
+          type: model_method
+          modelIdOrName: alpineInstaller
+          methodName: install
+          inputs:
+            vmName: '${{ inputs.vmName }}'
+            hostname: '${{ inputs.vmName }}'
+        dependsOn:
+          - step: start-vm
+            condition:
+              type: succeeded
+        weight: 0
+      - name: set-boot-order
+        description: Set boot order to disk-first (scsi0 then net0)
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: setBootOrder
+          inputs:
+            vmName: '${{ inputs.vmName }}'
+            boot: 'order=scsi0;net0'
+        dependsOn:
+          - step: install-alpine
+            condition:
+              type: succeeded
+        weight: 0
+      - name: stop-vm
+        description: Stop VM before rebooting from disk
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: stop
+          inputs:
+            vmName: '${{ inputs.vmName }}'
+        dependsOn:
+          - step: set-boot-order
+            condition:
+              type: succeeded
+        weight: 0
+      - name: start-from-disk
+        description: Start VM from disk (boots installed Alpine, waits for IP)
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: start
+          inputs:
+            vmName: '${{ inputs.vmName }}'
+        dependsOn:
+          - step: stop-vm
+            condition:
+              type: succeeded
+        weight: 0
+    dependsOn: []
+    weight: 0
+version: 1

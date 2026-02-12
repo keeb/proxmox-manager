@@ -1,0 +1,9 @@
+type: "@user/docker/engine"
+typeVersion: 2026.02.11.2
+id: 505a7eba-a715-4ddb-af7c-2976605050a3
+name: dockerEngine
+version: 1
+tags: {}
+globalArguments:
+  sshHost: '${{ model.fleet.resource.vm[inputs.vmName].attributes.ip }}'
+  sshUser: root

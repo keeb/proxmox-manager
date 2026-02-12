@@ -1,0 +1,90 @@
+id: ec7df6a0-f456-44a7-a273-369a34f5d537
+name: reboot-calamity
+description: Reboot the calamity Terraria server
+jobs:
+  - name: main
+    description: Auth, look up calamity VM, warn players, stop containers, stop VM, restart VM, start containers
+    steps:
+      - name: auth
+        description: Authenticate with Proxmox via keebDev02
+        task:
+          type: model_method
+          modelIdOrName: keebDev02
+          methodName: auth
+        dependsOn: []
+        weight: 0
+      - name: lookup
+        description: Look up calamity VM and get IP
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: lookup
+          inputs:
+            vmName: calamity
+        dependsOn:
+          - step: auth
+            condition:
+              type: succeeded
+        weight: 0
+      - name: warn-players
+        description: Broadcast shutdown warning to Terraria players
+        task:
+          type: model_method
+          modelIdOrName: calamityTerraria
+          methodName: warnShutdown
+        dependsOn:
+          - step: lookup
+            condition:
+              type: succeeded
+        weight: 0
+      - name: stop-terraria
+        description: Stop Docker Compose services
+        task:
+          type: model_method
+          modelIdOrName: calamity
+          methodName: stop
+        dependsOn:
+          - step: warn-players
+            condition:
+              type: succeeded
+        weight: 0
+      - name: stop-vm
+        description: Shut down the VM
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: stop
+          inputs:
+            vmName: calamity
+        dependsOn:
+          - step: stop-terraria
+            condition:
+              type: succeeded
+        weight: 0
+      - name: ensure-vm-running
+        description: Start calamity VM and wait for IP
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: start
+          inputs:
+            vmName: calamity
+        dependsOn:
+          - step: stop-vm
+            condition:
+              type: succeeded
+        weight: 0
+      - name: start-terraria
+        description: Start Docker Compose services
+        task:
+          type: model_method
+          modelIdOrName: calamity
+          methodName: start
+        dependsOn:
+          - step: ensure-vm-running
+            condition:
+              type: succeeded
+        weight: 0
+    dependsOn: []
+    weight: 0
+version: 1
