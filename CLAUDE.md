@@ -39,12 +39,14 @@ Run any workflow: `swamp workflow run <name>` (default log output is preferred �
 
 | Workflow | What it does |
 |----------|-------------|
-| `start-allthemons` | Start the Minecraft VM + server |
-| `stop-allthemons` | Stop the Minecraft server + VM |
-| `reboot-allthemons` | Stop + start allthemons |
+| `start-minecraft` | Start a Minecraft VM + server (`--input vmName=X tmuxSession=Y serverDir=Z startScript=S logPath=L`) |
+| `stop-minecraft` | Stop a Minecraft server + VM (same inputs) |
+| `reboot-minecraft` | Stop + start a Minecraft server (same inputs) |
+| `status-minecraft` | Query Minecraft player count (same inputs) |
 | `start-calamity` | Start the Terraria server (Docker Compose) |
 | `stop-calamity` | Stop the Terraria server |
 | `reboot-calamity` | Stop + start calamity |
+| `status-calamity` | Query calamity player count |
 | `update-calamity` | Pull images + restart Terraria |
 | `deploy-bot` | Deploy the Discord bot to the slate VM |
 
@@ -63,7 +65,17 @@ Run any workflow: `swamp workflow run <name>` (default log output is preferred �
 | `destroy-slate` | Stop and delete the slate VM |
 | `start-gold-image` | Start the gold-image VM |
 | `deploy-apkovl` | Package gold-image overlay and deploy to TFTP server |
+| `init-proxy` | Initialize nginx stream proxy directory on treehouse |
 | `configure-proxy` | Configure nginx stream proxy on treehouse for a backend service |
+| `collect-game-metrics` | Collect player metrics from all game servers — allthemons, calamity, infinity (runs on slate via cron every 2 min) |
+| `setup-game-metrics` | One-time: enable textfile collector on a game server VM (`--input vmName=X`) |
+| `minecraft-install` | Install a Minecraft server pack on a VM (`--input vmName=X`) |
+| `setup-monitoring` | Install monitoring agent on a VM (`--input vmName=X`) |
+| `configure-monitoring` | Configure monitoring agent + register with Prometheus hub (`--input vmName=X`) |
+| `sync-tailnet` | Sync Tailscale machine inventory |
+| `deploy-dashboards` | Push all 5 Grafana dashboard JSONs to Grafana |
+| `deploy-alerts` | Configure Discord contact point + notification policy + push all alert rules |
+| `deploy-grafana` | Full Grafana deploy: dashboards then alerting |
 
 ### Testing
 
@@ -77,6 +89,8 @@ Run any workflow: `swamp workflow run <name>` (default log output is preferred �
 Source code in `extensions/models/`. Shared helpers in `lib/`:
 - `lib/proxmox.ts` — Proxmox API helpers (`fetchWithCurl`, `waitForTask`, `resolveAuth`, `getVmIpWithRetry`, `is401`)
 - `lib/ssh.ts` — SSH helpers (`sshExec`, `sshExecRaw`, `waitForSsh`)
+- `lib/metrics.ts` — Game server metrics helpers (`formatPromMetrics`, `formatLogLine`, `writeMetricsFiles`)
+- `lib/grafana.ts` — Grafana API helpers (`grafanaApiGet`, `grafanaApiPost`, `grafanaApiPut`, `grafanaApiDelete`, `grafanaApiPostFile`)
 
 | Type | File | Purpose |
 |------|------|---------|
@@ -89,9 +103,14 @@ Source code in `extensions/models/`. Shared helpers in `lib/`:
 | `alpine/overlay` | `alpine_overlay.ts` | Alpine overlay packaging. Method: `deployApkovl` |
 | `docker/engine` | `docker_engine.ts` | Docker Engine lifecycle over SSH. Methods: `install`, `build`, `run`, `stop`, `inspect`, `exec` |
 | `tailscale/node` | `tailscale_node.ts` | Tailscale install + auth over SSH. Method: `install` |
-| `minecraft/server` | `minecraft_server.ts` | Minecraft server control. Methods: `warnShutdown`, `startMinecraftServer`, `stopMinecraftServer` |
-| `terraria/server` | `terraria_server.ts` | Terraria server control via Docker tmux. Methods: `warnShutdown`, `status` |
-| `nginx/stream` | `nginx_stream.ts` | Nginx stream proxy config over SSH. Method: `configure` |
+| `tailscale/net` | `tailscale_net.ts` | Tailnet machine inventory. Methods: `sync`, `discover` |
+| `minecraft/server` | `minecraft_server.ts` | Minecraft server control. Methods: `warnShutdown`, `startMinecraftServer`, `stopMinecraftServer`, `status`, `say`, `op`, `deop`, `collectMetrics` |
+| `minecraft/installer` | `minecraft_installer.ts` | Minecraft server pack installation. Methods: `installDeps`, `upload`, `extract`, `configure` |
+| `terraria/server` | `terraria_server.ts` | Terraria server control via Docker tmux. Methods: `warnShutdown`, `status`, `collectMetrics` |
+| `monitoring/agent` | `monitoring_agent.ts` | Monitoring agent install + config over SSH. Methods: `install`, `configure`, `enableTextfileCollector` |
+| `monitoring/hub` | `monitoring_hub.ts` | Prometheus target registration. Methods: `discover`, `register` |
+| `nginx/stream` | `nginx_stream.ts` | Nginx stream proxy config over SSH. Methods: `init`, `configure` |
+| `grafana/instance` | `grafana_instance.ts` | Grafana dashboard and alert management via API. Methods: `discover`, `pushDashboard`, `exportDashboard`, `configureContactPoint`, `configureNotificationPolicy`, `pushAlertRule`, `createAnnotation` |
 
 ### Auth pattern
 
@@ -114,33 +133,65 @@ CEL references use `resource.<specName>.<instanceName>` format:
 
 The `sync` method populates the fleet with all VMs from Proxmox in one call.
 
+### Annotation pattern
+
+Workflows that perform significant actions (deploys, game server start/stop/reboot) should end with a Grafana annotation step. This makes events visible on dashboards as vertical markers.
+
+Add an `annotate` step as the last step in the workflow, depending on the final "real" step:
+```yaml
+- name: annotate
+  description: Create Grafana annotation
+  task:
+    type: model_method
+    modelIdOrName: grafanaHub
+    methodName: createAnnotation
+    inputs:
+      tags: '["game", "start", "allthemons"]'
+      text: 'allthemons started'
+  dependsOn:
+    - step: <last-real-step>
+      condition:
+        type: succeeded
+  weight: 0
+```
+
+Tag conventions: `["deploy", "<target>"]` for deploys, `["game", "<action>", "<server>"]` for game server operations. Dashboards filter annotations by tag (e.g. Game Servers shows `["game"]`, Node Exporter shows `["deploy"]`).
+
 ### Model instances
 
 - **keebDev02** (`proxmox/node`) — auth root for all Proxmox calls
 - **fleet** (`proxmox/vm`) — fleet manager for all VMs (named resources per VM)
 - **calamity** (`docker/compose`) — Terraria Docker services, SSH host from fleet calamity IP
 - **allthemonsMinecraft** (`minecraft/server`) — Minecraft server control, SSH host from fleet allthemons IP
+- **infinityMinecraft** (`minecraft/server`) — Minecraft server control, SSH host from fleet infinity IP
+- **minecraftGame** (`minecraft/server`) — generic Minecraft server, SSH host from fleet (dynamic vmName), paths from workflow inputs
+- **minecraftInstaller** (`minecraft/installer`) — Minecraft server pack installer, SSH host from fleet (dynamic vmName)
 - **calamityTerraria** (`terraria/server`) — Terraria server control, SSH host from fleet calamity IP
 - **alpineInstaller** (`alpine/install`) — Alpine disk installer, SSH host from fleet (dynamic vmName)
 - **goldImageOverlay** (`alpine/overlay`) — overlay builder, SSH host from fleet gold-image IP
 - **dockerEngine** (`docker/engine`) — Docker installer, SSH host from fleet (dynamic vmName)
 - **slateDocker** (`docker/engine`) — Docker operations on slate, SSH host from fleet slate IP
 - **tailscaleNode** (`tailscale/node`) — Tailscale installer, SSH host from fleet (dynamic vmName), authKey from vault
+- **tailnet** (`tailscale/net`) — Tailnet machine inventory
 - **swampRepo** (`swamp/repo`) — Swamp repo deployment to slate, SSH host from fleet slate IP
 - **testVmSsh** (`ssh/host`) — ad-hoc SSH operations, host from fleet (dynamic vmName)
-- **treehouse** (`nginx/stream`) — nginx stream proxy on treehouse (vmName/targetIp/portMap via workflow inputs)
+- **monitoringAgent** (`monitoring/agent`) — monitoring agent install/config, SSH host from fleet (dynamic vmName)
+- **hancockMonitoring** (`monitoring/hub`) — Prometheus target registration on hancock (10.0.0.12)
+- **streamProxy** (`nginx/stream`) — nginx stream proxy on treehouse (vmName/targetIp/portMap via workflow inputs)
+- **grafanaHub** (`grafana/instance`) — Grafana dashboard/alert management on hancock (10.0.0.12)
 
 ## Discord Bot
 
 Deno app in `bot/`. Runs swamp workflows via chat commands in `#clankers` (requires `homie` role).
 
 ```
-!start <vm>    !stop <vm>    !reboot <vm>    !update <vm>    !status <vm>    !list    !help
+!start <vm>    !stop <vm>    !reboot <vm>    !update <vm>    !status <vm>
+!op <vm> <player>    !deop <vm> <player>    !list    !help
 ```
 
-Allowed VMs and actions are configured in `bot/commands.ts` (`ALLOWED_VMS`, `VM_SUPPORTED_ACTIONS`). Currently: `allthemons` (start/stop/reboot/status), `calamity` (start/stop/reboot/update/status).
+Game server VMs are auto-discovered at startup from swamp model definitions (types `@user/minecraft/server` and `@user/terraria/server`). The `serverName` globalArgument in each definition determines the VM name. Supported actions are type-inherent (minecraft: start/stop/reboot/status/op/deop; terraria: start/stop/reboot/update/status).
 
-To add a new VM to the bot: create the swamp workflows, then add entries to `ALLOWED_VMS` and `VM_SUPPORTED_ACTIONS` in `bot/commands.ts`.
+For minecraft servers, the bot calls generic workflows (`start-minecraft`, `stop-minecraft`, etc.) passing `vmName` and server config (tmuxSession, serverDir, startScript, logPath) extracted from the model definition's globalArguments. For terraria servers, the bot calls per-server workflows (`start-calamity`, etc.).
 
 ## PXE Infrastructure
 
@@ -150,6 +201,41 @@ To add a new VM to the bot: create the swamp workflows, then add entries to `ALL
 - **Overlay file**: `/srv/http/alpine/alpine.apkovl.tar.gz`
 - **Deploy workflow**: `swamp workflow run deploy-apkovl` (start gold-image → `lbu package` → SCP to HTTP server)
 - **Slate setup**: `config/slate-setup-alpine.conf` — Alpine `setup-alpine` answer file
+
+## Game Metrics
+
+Player metrics are collected every 2 minutes via cron on slate:
+```
+*/2 * * * * docker run --rm ... discord-bot sh -c "cd /opt/proxmox-manager && swamp workflow run collect-game-metrics"
+```
+
+The `collect-game-metrics` workflow: auth → sync-fleet → collectMetrics on all game servers in parallel.
+
+Each game server's `collectMetrics` method:
+1. SSHes to the game VM to query live player count (tmux `list` for Minecraft, `playing` for Terraria)
+2. Writes a `.prom` file to `/var/lib/node_exporter/textfile_collector/game_<type>.prom` on the game VM via SSH
+3. Appends a JSON line to `/var/log/game-players.log` on the game VM
+4. Writes a `metrics` swamp resource with the result
+
+node_exporter runs on each game VM with `--collector.textfile.directory=/var/lib/node_exporter/textfile_collector`. Prometheus on hancock (10.0.0.12) scrapes each game VM's node_exporter at `:9100`.
+
+**Setup checklist for a new game server VM:**
+1. `swamp workflow run setup-game-metrics --input '{"vmName":"X"}'` — installs node_exporter + textfile collector
+2. `swamp workflow run configure-monitoring --input '{"vmName":"X"}'` — registers VM with Prometheus hub
+3. Add VM's `collectMetrics` call to `collect-game-metrics` workflow
+
+**Key gotcha:** `sshHost` in minecraft/server GlobalArgs must be `z.string().nullable()` — when a VM is stopped, the fleet IP is null and Zod rejects non-nullable strings before the method even runs.
+
+## Getting data from swamp
+
+To inspect runtime data (IPs, status, etc.) written by model methods:
+```bash
+swamp data get fleet infinity          # full JSON for the infinity fleet resource
+swamp data list fleet                  # list all named resources in the fleet model
+swamp data list <modelName>            # list all data for any model
+```
+
+`swamp model get <name> --json` returns the **definition** (schema, globalArguments, methods) — NOT runtime data. Use `swamp data get` for runtime values.
 
 ## Best Practices
 
@@ -164,3 +250,5 @@ To add a new VM to the bot: create the swamp workflows, then add entries to `ALL
 - Workflow step `inputs` pass runtime values to model methods, overriding per-method arguments
 - Definitions use `globalArguments:` for shared config, `methods.<name>.arguments:` for per-method args
 - Extension model execute signature: `execute(args, context)` — method args in `args`, global args in `context.globalArgs`
+- Per-method args that come from workflow inputs (not definition YAML) must use `z.string().default("")` + runtime guard (`if (!args.x) throw new Error("x is required")`) — swamp validates ALL method schemas at model load time, so a required field + empty `arguments: {}` in the definition bricks the entire model
+- If a definition has no static per-method arguments, omit the `methods:` block entirely rather than declaring empty `arguments: {}`

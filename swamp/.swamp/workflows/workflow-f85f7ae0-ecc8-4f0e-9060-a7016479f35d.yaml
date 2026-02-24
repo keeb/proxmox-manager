@@ -1,6 +1,29 @@
-id: 80d5b703-e226-41b5-9cdc-2d261c37e8d7
-name: reboot-allthemons
-description: Reboot the allthemons Minecraft server
+id: f85f7ae0-ecc8-4f0e-9060-a7016479f35d
+name: reboot-minecraft
+description: Reboot a Minecraft server by VM name
+inputs:
+  properties:
+    vmName:
+      type: string
+      description: VM name to reboot
+    tmuxSession:
+      type: string
+      description: Tmux session name for the Minecraft server
+    serverDir:
+      type: string
+      description: Server directory path
+    startScript:
+      type: string
+      description: Start script path
+    logPath:
+      type: string
+      description: Server log path
+  required:
+    - vmName
+    - tmuxSession
+    - serverDir
+    - startScript
+    - logPath
 jobs:
   - name: main
     description: Auth, gracefully stop Minecraft, stop VM, restart and start Minecraft
@@ -14,13 +37,13 @@ jobs:
         dependsOn: []
         weight: 0
       - name: lookup
-        description: Find allthemons VM by name and populate vmid/IP
+        description: Find VM by name and populate vmid/IP
         task:
           type: model_method
           modelIdOrName: fleet
           methodName: lookup
           inputs:
-            vmName: allthemons
+            vmName: '${{ inputs.vmName }}'
         dependsOn:
           - step: auth
             condition:
@@ -30,7 +53,7 @@ jobs:
         description: Broadcast shutdown warning to Minecraft players
         task:
           type: model_method
-          modelIdOrName: allthemonsMinecraft
+          modelIdOrName: minecraftGame
           methodName: warnShutdown
         dependsOn:
           - step: lookup
@@ -41,7 +64,7 @@ jobs:
         description: Gracefully stop Minecraft server process
         task:
           type: model_method
-          modelIdOrName: allthemonsMinecraft
+          modelIdOrName: minecraftGame
           methodName: stopMinecraftServer
         dependsOn:
           - step: warn-players
@@ -55,20 +78,20 @@ jobs:
           modelIdOrName: fleet
           methodName: stop
           inputs:
-            vmName: allthemons
+            vmName: '${{ inputs.vmName }}'
         dependsOn:
           - step: stop-minecraft
             condition:
               type: succeeded
         weight: 0
       - name: ensure-vm-running
-        description: Start allthemons VM and wait for IP
+        description: Start VM and wait for IP
         task:
           type: model_method
           modelIdOrName: fleet
           methodName: start
           inputs:
-            vmName: allthemons
+            vmName: '${{ inputs.vmName }}'
         dependsOn:
           - step: stop-vm
             condition:
@@ -78,10 +101,24 @@ jobs:
         description: Start Minecraft server and wait for ready
         task:
           type: model_method
-          modelIdOrName: allthemonsMinecraft
+          modelIdOrName: minecraftGame
           methodName: startMinecraftServer
         dependsOn:
           - step: ensure-vm-running
+            condition:
+              type: succeeded
+        weight: 0
+      - name: annotate
+        description: Create Grafana annotation
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: createAnnotation
+          inputs:
+            tags: '["game", "reboot", "${{ inputs.vmName }}"]'
+            text: '${{ inputs.vmName }} rebooted'
+        dependsOn:
+          - step: start-minecraft
             condition:
               type: succeeded
         weight: 0

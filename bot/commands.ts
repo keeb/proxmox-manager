@@ -13,18 +13,102 @@ import {
   type WorkflowStep,
 } from "./formatting.ts";
 
-const VALID_ACTIONS = ["start", "stop", "reboot", "update", "status"] as const;
+const VALID_ACTIONS = ["start", "stop", "reboot", "update", "status", "op", "deop"] as const;
 
-// Whitelist of VM names that have workflows.
-// Add entries here when you create new start-<name>/stop-<name>/reboot-<name> workflows.
-const ALLOWED_VMS = new Set(["allthemons", "calamity"]);
-
-const VM_SUPPORTED_ACTIONS: Record<string, Set<string>> = {
-  allthemons: new Set(["start", "stop", "reboot", "status"]),
-  calamity: new Set(["start", "stop", "reboot", "update", "status"]),
+const GAME_TYPE_ACTIONS: Record<string, string[]> = {
+  minecraft: ["start", "stop", "reboot", "status", "op", "deop"],
+  terraria: ["start", "stop", "reboot", "update", "status"],
 };
 
-const REPO_DIR = new URL("../swamp/", import.meta.url).pathname;
+const MODEL_TYPE_TO_GAME: Record<string, string> = {
+  "@user/minecraft/server": "minecraft",
+  "@user/terraria/server": "terraria",
+};
+
+interface DiscoveredVm {
+  vmName: string;
+  gameType: string;
+  modelName: string;
+  supportedActions: Set<string>;
+  serverConfig: Record<string, string>;
+}
+
+const vmRegistry = new Map<string, DiscoveredVm>();
+
+const PLAYER_NAME_ACTIONS = new Set(["op", "deop"]);
+
+const REPO_DIR = Deno.env.get("SWAMP_REPO_DIR") || new URL("../swamp/", import.meta.url).pathname;
+
+async function discoverGameServers(): Promise<void> {
+  vmRegistry.clear();
+  const cmd = new Deno.Command("swamp", {
+    args: ["model", "search", "server", "--json"],
+    cwd: REPO_DIR,
+    stdout: "piped",
+    stderr: "piped",
+  });
+  const result = await cmd.output();
+  if (result.code !== 0) {
+    const stderr = new TextDecoder().decode(result.stderr);
+    console.error(`[discovery] Failed to search models: ${stderr}`);
+    return;
+  }
+
+  const stdout = new TextDecoder().decode(result.stdout);
+  const jsonStart = stdout.indexOf("{");
+  if (jsonStart < 0) {
+    console.error("[discovery] No JSON in model search output");
+    return;
+  }
+
+  const parsed = JSON.parse(stdout.slice(jsonStart));
+  const models = parsed.results ?? parsed;
+
+  for (const m of models) {
+    const gameType = MODEL_TYPE_TO_GAME[m.type];
+    if (!gameType) continue;
+
+    // Get full definition to read globalArguments.serverName
+    const getCmd = new Deno.Command("swamp", {
+      args: ["model", "get", m.name, "--json"],
+      cwd: REPO_DIR,
+      stdout: "piped",
+      stderr: "piped",
+    });
+    const getResult = await getCmd.output();
+    if (getResult.code !== 0) continue;
+
+    const getStdout = new TextDecoder().decode(getResult.stdout);
+    const getJsonStart = getStdout.indexOf("{");
+    if (getJsonStart < 0) continue;
+
+    const def = JSON.parse(getStdout.slice(getJsonStart));
+    const serverName = def.globalArguments?.serverName;
+    if (!serverName || serverName.includes("${{")) continue;
+
+    const actions = GAME_TYPE_ACTIONS[gameType];
+    if (!actions) continue;
+
+    const ga = def.globalArguments || {};
+    const serverConfig: Record<string, string> = {};
+    for (const key of ["tmuxSession", "serverDir", "startScript", "logPath"]) {
+      const val = ga[key];
+      if (val && !String(val).includes("${{")) {
+        serverConfig[key] = String(val);
+      }
+    }
+
+    vmRegistry.set(serverName, {
+      vmName: serverName,
+      gameType,
+      modelName: m.name,
+      supportedActions: new Set(actions),
+      serverConfig,
+    });
+  }
+
+  console.log(`[discovery] Found ${vmRegistry.size} server(s): ${[...vmRegistry.keys()].join(", ")}`);
+}
 
 async function getWorkflowSteps(workflowName: string): Promise<WorkflowStep[] | null> {
   const cmd = new Deno.Command("swamp", {
@@ -69,9 +153,13 @@ async function runWorkflowStreaming(
   stepNameToIdx: Map<string, number>,
   statuses: ("pending" | "in_progress" | "done" | "failed")[],
   onUpdate: () => Promise<void>,
+  inputs?: Record<string, string>,
 ): Promise<WorkflowRunResult> {
+  const inputArgs = inputs
+    ? Object.entries(inputs).flatMap(([k, v]) => ["--input", `${k}=${v}`])
+    : [];
   const cmd = new Deno.Command("swamp", {
-    args: ["workflow", "run", workflowName],
+    args: ["workflow", "run", workflowName, ...inputArgs],
     cwd: REPO_DIR,
     stdout: "piped",
     stderr: "piped",
@@ -156,7 +244,7 @@ async function runSyncFleet(): Promise<{ ok: boolean; error?: string }> {
 
 async function getFleetVmData(): Promise<{ ok: boolean; vms: any[]; error?: string }> {
   const vms = [];
-  for (const vmName of ALLOWED_VMS) {
+  for (const vmName of vmRegistry.keys()) {
     const cmd = new Deno.Command("swamp", {
       args: ["data", "get", "fleet", vmName, "--json"],
       cwd: REPO_DIR,
@@ -181,9 +269,12 @@ async function getFleetVmData(): Promise<{ ok: boolean; vms: any[]; error?: stri
   return { ok: vms.length > 0, vms };
 }
 
-async function runSwampModelMethod(modelName: string, methodName: string): Promise<{ ok: boolean; output: string }> {
+async function runSwampModelMethod(modelName: string, methodName: string, inputs?: Record<string, string>): Promise<{ ok: boolean; output: string }> {
+  const inputArgs = inputs
+    ? ["--input", JSON.stringify(inputs)]
+    : [];
   const cmd = new Deno.Command("swamp", {
-    args: ["model", "method", "run", modelName, methodName, "--json"],
+    args: ["model", "method", "run", modelName, methodName, "--json", ...inputArgs],
     cwd: REPO_DIR,
     stdout: "piped",
     stderr: "piped",
@@ -220,6 +311,8 @@ export async function handleMessage(message: Message): Promise<void> {
     return;
   }
 
+  await discoverGameServers();
+
   if (command === "list") {
     if (!hasRequiredRole(message.member, config.requiredRole)) {
       await message.reply({ embeds: [accessDeniedEmbed(config.requiredRole)] });
@@ -254,31 +347,20 @@ export async function handleMessage(message: Message): Promise<void> {
       return;
     }
 
-    if (!ALLOWED_VMS.has(vmName)) {
-      await message.reply(`Unknown VM: **${vmName}**. Available: ${[...ALLOWED_VMS].join(", ")}`);
+    const vm = vmRegistry.get(vmName);
+    if (!vm) {
+      await message.reply(`Unknown VM: **${vmName}**. Available: ${[...vmRegistry.keys()].join(", ")}`);
       return;
     }
 
-    const supported = VM_SUPPORTED_ACTIONS[vmName];
-    if (supported && !supported.has(command)) {
-      await message.reply(`**${vmName}** doesn't support \`${command}\`. Available: ${[...supported].join(", ")}`);
+    if (!vm.supportedActions.has(command)) {
+      await message.reply(`**${vmName}** doesn't support \`${command}\`. Available: ${[...vm.supportedActions].join(", ")}`);
       return;
     }
-
-    // Status is a direct model method call — CEL resolves from cached data on disk.
-    const VM_STATUS_MODEL: Record<string, string> = {
-      allthemons: "allthemonsMinecraft",
-      calamity: "calamityTerraria",
-    };
 
     if (command === "status") {
-      const statusModel = VM_STATUS_MODEL[vmName];
-      if (!statusModel) {
-        await message.reply(`No status model configured for **${vmName}**.`);
-        return;
-      }
       const reply = await message.reply({ embeds: [pendingEmbed("status", vmName)] });
-      const result = await runSwampModelMethod(statusModel, "status");
+      const result = await runSwampModelMethod(vm.modelName, "status");
 
       if (result.ok) {
         try {
@@ -296,17 +378,47 @@ export async function handleMessage(message: Message): Promise<void> {
       return;
     }
 
-    const workflowNames = [`${command}-${vmName}`];
+    if (PLAYER_NAME_ACTIONS.has(command)) {
+      const playerName = parts[2];
+      if (!playerName) {
+        await message.reply(`Usage: \`${config.commandPrefix}${command} <vm-name> <player-name>\``);
+        return;
+      }
 
-    // Pre-fetch steps from all workflows
+      const sanitized = playerName.replace(/[^a-zA-Z0-9_]/g, "");
+      if (!sanitized) {
+        await message.reply(`Invalid player name. Only letters, numbers, and underscores are allowed.`);
+        return;
+      }
+
+      const reply = await message.reply({ embeds: [pendingEmbed(command, `${vmName} ${sanitized}`)] });
+      const result = await runSwampModelMethod(vm.modelName, command, { playerName: sanitized });
+
+      if (result.ok) {
+        await reply.edit({ embeds: [successEmbed(command, `${vmName} — ${sanitized}`)] });
+      } else {
+        await reply.edit({ embeds: [errorEmbed(command, `${vmName} ${sanitized}`, result.output)] });
+      }
+      return;
+    }
+
+    // Minecraft uses generic workflows with vmName input; others use per-server workflows
+    let workflowName: string;
+    let workflowInputs: Record<string, string> | undefined;
+    if (vm.gameType === "minecraft") {
+      workflowName = `${command}-minecraft`;
+      workflowInputs = { vmName, ...vm.serverConfig };
+    } else {
+      workflowName = `${command}-${vmName}`;
+    }
+
+    // Pre-fetch steps from the workflow
     const allSteps: WorkflowStep[] = [];
     const workflowStepRanges: { name: string; offset: number; count: number }[] = [];
-    for (const wfName of workflowNames) {
-      const steps = await getWorkflowSteps(wfName);
-      if (steps) {
-        workflowStepRanges.push({ name: wfName, offset: allSteps.length, count: steps.length });
-        allSteps.push(...steps);
-      }
+    const steps = await getWorkflowSteps(workflowName);
+    if (steps) {
+      workflowStepRanges.push({ name: workflowName, offset: 0, count: steps.length });
+      allSteps.push(...steps);
     }
 
     if (allSteps.length > 0) {
@@ -329,6 +441,7 @@ export async function handleMessage(message: Message): Promise<void> {
           async () => {
             await reply.edit({ embeds: [workflowStepsEmbed(command, vmName, allSteps, statuses)] }).catch(() => {});
           },
+          workflowInputs,
         );
 
         if (!result.ok) {
@@ -348,11 +461,13 @@ export async function handleMessage(message: Message): Promise<void> {
       }
     } else {
       // No workflow steps found — simple pending/success/error fallback
-      const workflowName = workflowNames[0];
       const reply = await message.reply({ embeds: [pendingEmbed(command, vmName)] });
 
+      const inputArgs = workflowInputs
+        ? Object.entries(workflowInputs).flatMap(([k, v]) => ["--input", `${k}=${v}`])
+        : [];
       const cmd = new Deno.Command("swamp", {
-        args: ["workflow", "run", workflowName],
+        args: ["workflow", "run", workflowName, ...inputArgs],
         cwd: REPO_DIR,
         stdout: "piped",
         stderr: "piped",

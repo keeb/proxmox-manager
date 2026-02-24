@@ -1,0 +1,65 @@
+id: 7496b85c-24c4-4d16-aab4-bb7f6c0a0e11
+name: status-minecraft
+description: Check Minecraft server status by VM name
+inputs:
+  properties:
+    vmName:
+      type: string
+      description: VM name to check
+    tmuxSession:
+      type: string
+      description: Tmux session name for the Minecraft server
+    serverDir:
+      type: string
+      description: Server directory path
+    startScript:
+      type: string
+      description: Start script path
+    logPath:
+      type: string
+      description: Server log path
+  required:
+    - vmName
+    - tmuxSession
+    - serverDir
+    - startScript
+    - logPath
+jobs:
+  - name: main
+    description: Auth, lookup VM IP, then check Minecraft server status
+    steps:
+      - name: auth
+        description: Authenticate with Proxmox
+        task:
+          type: model_method
+          modelIdOrName: keebDev02
+          methodName: auth
+        dependsOn: []
+        weight: 0
+      - name: lookup-vm
+        description: Look up VM IP from fleet
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: lookup
+          inputs:
+            vmName: '${{ inputs.vmName }}'
+        dependsOn:
+          - step: auth
+            condition:
+              type: succeeded
+        weight: 0
+      - name: check-status
+        description: Check Minecraft server status
+        task:
+          type: model_method
+          modelIdOrName: minecraftGame
+          methodName: status
+        dependsOn:
+          - step: lookup-vm
+            condition:
+              type: succeeded
+        weight: 0
+    dependsOn: []
+    weight: 0
+version: 1

@@ -1,9 +1,32 @@
-id: 1fa9c0a8-789d-4a07-9b4e-6e84c9fead23
-name: stop-allthemons
-description: Stop the allthemons Minecraft server
+id: d560e1aa-98c6-4443-839f-6bf79248b2bb
+name: stop-minecraft
+description: Stop a Minecraft server by VM name
+inputs:
+  properties:
+    vmName:
+      type: string
+      description: VM name to stop
+    tmuxSession:
+      type: string
+      description: Tmux session name for the Minecraft server
+    serverDir:
+      type: string
+      description: Server directory path
+    startScript:
+      type: string
+      description: Start script path
+    logPath:
+      type: string
+      description: Server log path
+  required:
+    - vmName
+    - tmuxSession
+    - serverDir
+    - startScript
+    - logPath
 jobs:
   - name: main
-    description: Auth, look up allthemons via fleet, warn players, stop Minecraft, stop VM
+    description: Auth, look up VM via fleet, warn players, stop Minecraft, stop VM
     steps:
       - name: auth
         description: Authenticate with Proxmox via keebDev02
@@ -14,13 +37,13 @@ jobs:
         dependsOn: []
         weight: 0
       - name: lookup
-        description: Find allthemons VM by name and populate vmid/IP
+        description: Find VM by name and populate vmid/IP
         task:
           type: model_method
           modelIdOrName: fleet
           methodName: lookup
           inputs:
-            vmName: allthemons
+            vmName: '${{ inputs.vmName }}'
         dependsOn:
           - step: auth
             condition:
@@ -30,7 +53,7 @@ jobs:
         description: Broadcast shutdown warning to Minecraft players
         task:
           type: model_method
-          modelIdOrName: allthemonsMinecraft
+          modelIdOrName: minecraftGame
           methodName: warnShutdown
         dependsOn:
           - step: lookup
@@ -41,7 +64,7 @@ jobs:
         description: Gracefully stop Minecraft server process
         task:
           type: model_method
-          modelIdOrName: allthemonsMinecraft
+          modelIdOrName: minecraftGame
           methodName: stopMinecraftServer
         dependsOn:
           - step: warn-players
@@ -55,9 +78,23 @@ jobs:
           modelIdOrName: fleet
           methodName: stop
           inputs:
-            vmName: allthemons
+            vmName: '${{ inputs.vmName }}'
         dependsOn:
           - step: stop-minecraft
+            condition:
+              type: succeeded
+        weight: 0
+      - name: annotate
+        description: Create Grafana annotation
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: createAnnotation
+          inputs:
+            tags: '["game", "stop", "${{ inputs.vmName }}"]'
+            text: '${{ inputs.vmName }} stopped'
+        dependsOn:
+          - step: stop-vm
             condition:
               type: succeeded
         weight: 0

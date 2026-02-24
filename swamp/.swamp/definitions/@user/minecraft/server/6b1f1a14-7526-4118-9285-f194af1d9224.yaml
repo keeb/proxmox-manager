@@ -1,0 +1,14 @@
+type: '@user/minecraft/server'
+typeVersion: 2026.02.16.1
+id: 6b1f1a14-7526-4118-9285-f194af1d9224
+name: minecraftGame
+version: 1
+tags: {}
+globalArguments:
+  sshHost: '${{ model.fleet.resource.vm[inputs.vmName].attributes.ip }}'
+  sshUser: root
+  tmuxSession: '${{ inputs.tmuxSession }}'
+  serverDir: '${{ inputs.serverDir }}'
+  startScript: '${{ inputs.startScript }}'
+  logPath: '${{ inputs.logPath }}'
+  serverName: '${{ inputs.vmName }}'
