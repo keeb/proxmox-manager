@@ -21,6 +21,10 @@ swamp/workflows/
 swamp/vaults/
 swamp/resources/
 
+# Pulled extensions (managed by swamp extension pull, updated from upstream)
+swamp/extensions/workflows/
+swamp/.swamp/bundles/
+
 # Claude Code (local settings, skills, tool config)
 .claude/
 
