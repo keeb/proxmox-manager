@@ -61,6 +61,20 @@ jobs:
             condition:
               type: succeeded
         weight: 0
+      - name: annotate
+        description: Create Grafana annotation
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: createAnnotation
+          inputs:
+            tags: '["game", "stop", "calamity"]'
+            text: 'calamity stopped'
+        dependsOn:
+          - step: stop-vm
+            condition:
+              type: succeeded
+        weight: 0
     dependsOn: []
     weight: 0
 version: 1

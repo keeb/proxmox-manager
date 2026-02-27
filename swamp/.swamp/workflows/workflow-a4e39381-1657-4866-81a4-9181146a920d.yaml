@@ -1,0 +1,87 @@
+id: a4e39381-1657-4866-81a4-9181146a920d
+name: setup-fleet-report
+description: Install fleet-report cron job on slate (runs in Docker like collect-game-metrics)
+jobs:
+  - name: setup
+    description: Auth, lookup slate, fix stale cron entry if needed, install Docker-based cron entry
+    steps:
+      - name: auth
+        description: Authenticate with Proxmox
+        task:
+          type: model_method
+          modelIdOrName: keebDev02
+          methodName: auth
+        dependsOn: []
+        weight: 0
+      - name: lookup-slate
+        description: Look up slate VM to get its IP
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: lookup
+          inputs:
+            vmName: slate
+        dependsOn:
+          - step: auth
+            condition:
+              type: succeeded
+        weight: 0
+      - name: remove-stale-cron
+        description: Remove the old non-Docker cron entry if it exists
+        task:
+          type: model_method
+          modelIdOrName: testVmSsh
+          methodName: exec
+          inputs:
+            vmName: slate
+            command: "sed -i '/fleet-report/d' /etc/crontabs/root || true"
+        dependsOn:
+          - step: lookup-slate
+            condition:
+              type: succeeded
+        weight: 0
+      - name: install-report-cron
+        description: Add Docker-based fleet-report cron entry — every hour (idempotent)
+        task:
+          type: model_method
+          modelIdOrName: testVmSsh
+          methodName: exec
+          inputs:
+            vmName: slate
+            command: "grep -q 'fleet-report.sh' /etc/crontabs/root || echo '0 * * * * docker run --rm --name fleet-report -v /opt/proxmox-manager:/opt/proxmox-manager -v /root/.ssh:/root/.ssh -v /root/.config/swamp:/root/.config/swamp:ro -v /tmp:/tmp discord-bot sh -c \"cd /opt/proxmox-manager && sh scripts/fleet-report.sh\" >> /var/log/fleet-report.log 2>&1' >> /etc/crontabs/root"
+        dependsOn:
+          - step: remove-stale-cron
+            condition:
+              type: succeeded
+        weight: 0
+      - name: install-post-cron
+        description: Add hourly Discord post cron entry (idempotent)
+        task:
+          type: model_method
+          modelIdOrName: testVmSsh
+          methodName: exec
+          inputs:
+            vmName: slate
+            command: "grep -q 'post-fleet-report' /etc/crontabs/root || echo '5 8 * * * docker run --rm --name post-fleet-report -v /opt/proxmox-manager:/opt/proxmox-manager -v /tmp:/tmp discord-bot sh -c \"sh /opt/proxmox-manager/scripts/post-fleet-report.sh\" >> /var/log/fleet-report.log 2>&1' >> /etc/crontabs/root"
+        dependsOn:
+          - step: install-report-cron
+            condition:
+              type: succeeded
+        weight: 0
+      - name: restart-crond
+        description: Restart crond to pick up the new entries
+        task:
+          type: model_method
+          modelIdOrName: testVmSsh
+          methodName: exec
+          inputs:
+            vmName: slate
+            command: 'rc-service crond restart || true'
+        dependsOn:
+          - step: install-post-cron
+            condition:
+              type: succeeded
+        weight: 0
+    dependsOn: []
+    weight: 0
+version: 1

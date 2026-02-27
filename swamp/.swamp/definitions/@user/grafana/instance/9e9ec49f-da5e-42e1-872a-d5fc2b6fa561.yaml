@@ -1,0 +1,9 @@
+type: '@user/grafana/instance'
+typeVersion: 2026.02.18.1
+id: 9e9ec49f-da5e-42e1-872a-d5fc2b6fa561
+name: grafanaHub
+version: 1
+tags: {}
+globalArguments:
+  sshHost: '10.0.0.12'
+  sshUser: keeb

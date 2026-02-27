@@ -85,6 +85,20 @@ jobs:
             condition:
               type: succeeded
         weight: 0
+      - name: annotate
+        description: Create Grafana annotation
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: createAnnotation
+          inputs:
+            tags: '["game", "reboot", "calamity"]'
+            text: 'calamity rebooted'
+        dependsOn:
+          - step: start-terraria
+            condition:
+              type: succeeded
+        weight: 0
     dependsOn: []
     weight: 0
 version: 1

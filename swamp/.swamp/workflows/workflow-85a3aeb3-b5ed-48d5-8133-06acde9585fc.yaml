@@ -1,0 +1,49 @@
+id: 85a3aeb3-b5ed-48d5-8133-06acde9585fc
+name: install-monitoring
+description: Install monitoring agents (node-exporter + promtail) on a VM
+inputs:
+  vmName:
+    type: string
+    required: true
+    description: Name of the VM to install monitoring on
+jobs:
+  - name: install
+    description: Auth, lookup VM, install monitoring software
+    steps:
+      - name: auth
+        description: Authenticate with Proxmox
+        task:
+          type: model_method
+          modelIdOrName: keebDev02
+          methodName: auth
+        dependsOn: []
+        weight: 0
+      - name: lookup-vm
+        description: Lookup target VM in fleet
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: lookup
+          inputs:
+            vmName: '${{ inputs.vmName }}'
+        dependsOn:
+          - step: auth
+            condition:
+              type: succeeded
+        weight: 0
+      - name: install-agents
+        description: Install node-exporter and promtail on the VM
+        task:
+          type: model_method
+          modelIdOrName: monitoringAgent
+          methodName: install
+          inputs:
+            vmName: '${{ inputs.vmName }}'
+        dependsOn:
+          - step: lookup-vm
+            condition:
+              type: succeeded
+        weight: 0
+    dependsOn: []
+    weight: 0
+version: 1

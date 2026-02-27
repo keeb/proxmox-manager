@@ -1,0 +1,189 @@
+id: 7f15b50a-c825-4fbf-ba87-fda8263f4aff
+name: deploy-grafana
+description: Full Grafana deploy — push all dashboards then configure alerting
+jobs:
+  - name: dashboards
+    description: Push all 5 dashboards in parallel
+    steps:
+      - name: push-caddy
+        description: Push Caddy Access Logs dashboard
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: pushDashboard
+          inputs:
+            dashboardFile: grafana/dashboards/caddy-access-logs.json
+        dependsOn: []
+        weight: 0
+      - name: push-game-servers
+        description: Push Game Servers dashboard
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: pushDashboard
+          inputs:
+            dashboardFile: grafana/dashboards/game-servers.json
+        dependsOn: []
+        weight: 0
+      - name: push-media-library
+        description: Push Media Library dashboard
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: pushDashboard
+          inputs:
+            dashboardFile: grafana/dashboards/media-library.json
+        dependsOn: []
+        weight: 0
+      - name: push-cadvisor
+        description: Push cAdvisor dashboard
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: pushDashboard
+          inputs:
+            dashboardFile: grafana/dashboards/cadvisor.json
+        dependsOn:
+          - step: push-game-servers
+            condition:
+              type: succeeded
+        weight: 0
+      - name: push-node-exporter
+        description: Push Node Exporter Full dashboard
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: pushDashboard
+          inputs:
+            dashboardFile: grafana/dashboards/node-exporter-full.json
+        dependsOn:
+          - step: push-media-library
+            condition:
+              type: succeeded
+        weight: 0
+    dependsOn: []
+    weight: 0
+  - name: alerts
+    description: Configure contact point, policy, and push all alert rules
+    steps:
+      - name: configure-contact-point
+        description: Create Discord webhook contact point
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: configureContactPoint
+          inputs:
+            webhookUrl: '${{ vault.get("proxmox-vault", "discord-alerts-webhook") }}'
+            name: discord-alerts
+        dependsOn: []
+        weight: 0
+      - name: configure-policy
+        description: Set default notification policy
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: configureNotificationPolicy
+          inputs:
+            contactPointName: discord-alerts
+        dependsOn:
+          - step: configure-contact-point
+            condition:
+              type: succeeded
+        weight: 0
+      - name: push-high-cpu
+        description: Push High CPU alert
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: pushAlertRule
+          inputs:
+            ruleFile: grafana/alerts/high-cpu.json
+        dependsOn:
+          - step: configure-policy
+            condition:
+              type: succeeded
+        weight: 0
+      - name: push-high-memory
+        description: Push High Memory alert
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: pushAlertRule
+          inputs:
+            ruleFile: grafana/alerts/high-memory.json
+        dependsOn:
+          - step: configure-policy
+            condition:
+              type: succeeded
+        weight: 0
+      - name: push-disk-warning
+        description: Push Disk Warning alert
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: pushAlertRule
+          inputs:
+            ruleFile: grafana/alerts/disk-warning.json
+        dependsOn:
+          - step: configure-policy
+            condition:
+              type: succeeded
+        weight: 0
+      - name: push-disk-critical
+        description: Push Disk Critical alert
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: pushAlertRule
+          inputs:
+            ruleFile: grafana/alerts/disk-critical.json
+        dependsOn:
+          - step: configure-policy
+            condition:
+              type: succeeded
+        weight: 0
+      - name: push-metrics-stale
+        description: Push Metrics Stale alert
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: pushAlertRule
+          inputs:
+            ruleFile: grafana/alerts/metrics-stale.json
+        dependsOn:
+          - step: configure-policy
+            condition:
+              type: succeeded
+        weight: 0
+      - name: push-container-restarts
+        description: Push Container Restart Storm alert
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: pushAlertRule
+          inputs:
+            ruleFile: grafana/alerts/container-restarts.json
+        dependsOn:
+          - step: configure-policy
+            condition:
+              type: succeeded
+        weight: 0
+      - name: push-container-oom
+        description: Push Container OOM alert
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: pushAlertRule
+          inputs:
+            ruleFile: grafana/alerts/container-oom.json
+        dependsOn:
+          - step: configure-policy
+            condition:
+              type: succeeded
+        weight: 0
+    dependsOn:
+      - job: dashboards
+        condition:
+          type: succeeded
+    weight: 0
+version: 1

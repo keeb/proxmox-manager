@@ -1,10 +1,12 @@
 import { z } from "npm:zod@4";
 import { isValidSshHost, sshExecRaw } from "./lib/ssh.ts";
+import { writeMetricsFiles } from "./lib/metrics.ts";
 
 const GlobalArgs = z.object({
   sshHost: z.string().nullable().describe("SSH hostname/IP (set via CEL from lookup model)"),
   sshUser: z.string().default("root").describe("SSH user (default 'root')"),
   containerName: z.string().default("tmodloader").describe("Docker container name running tModLoader"),
+  serverName: z.string().default("server").describe("Resource instance name for writeResource"),
 });
 
 const ServerSchema = z.object({
@@ -19,10 +21,16 @@ const ServerSchema = z.object({
 
 export const model = {
   type: "@user/terraria/server",
-  version: "2026.02.11.1",
+  version: "2026.02.14.1",
   resources: {
     "server": {
       description: "Terraria server operation result",
+      schema: ServerSchema,
+      lifetime: "infinite",
+      garbageCollection: 10,
+    },
+    "metrics": {
+      description: "Terraria player metrics collection result",
       schema: ServerSchema,
       lifetime: "infinite",
       garbageCollection: 10,
@@ -158,6 +166,83 @@ export const model = {
 
         console.log(`[status] Could not parse player list from pane output`);
         const handle = await context.writeResource("server", "server", { serverRunning: true, online: null, max: null, players: [], timestamp: new Date().toISOString() });
+        return { dataHandles: [handle] };
+      },
+    },
+
+    collectMetrics: {
+      description: "Collect player metrics and write Prometheus textfile + JSON log",
+      arguments: z.object({}),
+      execute: async (args, context) => {
+        const { sshHost, sshUser = "root", containerName = "tmodloader", serverName } = context.globalArgs;
+
+        if (!isValidSshHost(sshHost)) {
+          console.log(`[collectMetrics] No sshHost - VM may be stopped`);
+          const handle = await context.writeResource("metrics", "metrics", { serverRunning: false, online: 0, max: null, players: [], timestamp: new Date().toISOString() });
+          return { dataHandles: [handle] };
+        }
+
+        const reachable = await sshExecRaw(sshHost, sshUser, "echo ok");
+        if (reachable.code !== 0) {
+          console.log(`[collectMetrics] SSH unreachable at ${sshHost}`);
+          const handle = await context.writeResource("metrics", "metrics", { serverRunning: false, online: 0, max: null, players: [], timestamp: new Date().toISOString() });
+          return { dataHandles: [handle] };
+        }
+
+        // Check container is running
+        const containerCheck = await sshExecRaw(sshHost, sshUser, `docker inspect --format '{{.State.Running}}' ${containerName} 2>/dev/null`);
+        if (containerCheck.code !== 0 || containerCheck.stdout.trim() !== "true") {
+          console.log(`[collectMetrics] Container ${containerName} not running`);
+          const data = { serverRunning: false, online: 0, max: null, players: [] };
+          await writeMetricsFiles(sshHost, sshUser, "terraria", serverName, data);
+          const handle = await context.writeResource("metrics", "metrics", { ...data, timestamp: new Date().toISOString() });
+          return { dataHandles: [handle] };
+        }
+
+        // Check tmux session
+        const tmuxCheck = await sshExecRaw(sshHost, sshUser, `docker exec ${containerName} tmux has-session 2>/dev/null && echo exists || echo missing`);
+        if (tmuxCheck.stdout.trim() !== "exists") {
+          console.log(`[collectMetrics] No tmux session in container`);
+          const data = { serverRunning: false, online: 0, max: null, players: [] };
+          await writeMetricsFiles(sshHost, sshUser, "terraria", serverName, data);
+          const handle = await context.writeResource("metrics", "metrics", { ...data, timestamp: new Date().toISOString() });
+          return { dataHandles: [handle] };
+        }
+
+        // Query players (same logic as status)
+        await sshExecRaw(sshHost, sshUser, `docker exec ${containerName} tmux send-keys "playing" Enter`);
+        await new Promise(r => setTimeout(r, 2000));
+        const paneResult = await sshExecRaw(sshHost, sshUser, `docker exec ${containerName} tmux capture-pane -p`);
+        const lines = paneResult.stdout.split("\n");
+
+        let online = 0;
+        let countLineIdx = -1;
+        for (let i = lines.length - 1; i >= 0; i--) {
+          const noMatch = lines[i].match(/:\s*No players connected\./);
+          if (noMatch) { countLineIdx = i; online = 0; break; }
+          const numMatch = lines[i].match(/(\d+)\s+players?\s+connected\./);
+          if (numMatch) { countLineIdx = i; online = parseInt(numMatch[1], 10); break; }
+        }
+
+        const players = [];
+        if (countLineIdx >= 0) {
+          for (let i = countLineIdx - 1; i >= 0 && players.length < online; i--) {
+            const line = lines[i].trim();
+            const nameMatch = line.match(/^:\s*(\S+)\s+\(/);
+            if (nameMatch) {
+              players.unshift(nameMatch[1]);
+            } else {
+              break;
+            }
+          }
+        }
+
+        console.log(`[collectMetrics] ${online} player(s): ${players.join(", ") || "(none)"}`);
+
+        const data = { serverRunning: true, online, max: null, players };
+        await writeMetricsFiles(sshHost, sshUser, "terraria", serverName, data);
+
+        const handle = await context.writeResource("metrics", "metrics", { ...data, timestamp: new Date().toISOString() });
         return { dataHandles: [handle] };
       },
     },

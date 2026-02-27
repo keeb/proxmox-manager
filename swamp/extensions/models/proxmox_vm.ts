@@ -60,6 +60,8 @@ const VmDataSchema = z.object({
   vmName: z.string(),
   status: z.string().optional(),
   ip: z.string().nullable().optional(),
+  maxmem: z.number().optional().describe("Allocated memory in bytes"),
+  maxcpu: z.number().optional().describe("Allocated CPU count"),
   success: z.boolean().optional(),
   wasStarted: z.boolean().optional(),
   boot: z.string().optional(),
@@ -99,7 +101,7 @@ function authOpts() {
 
 export const model = {
   type: "@user/proxmox/vm",
-  version: "2026.02.11.2",
+  version: "2026.02.18.1",
   resources: {
     "vm": {
       description: "VM operation result",
@@ -555,9 +557,11 @@ export const model = {
             ip = await getVmIpWithRetry(apiUrl, node, rv.vmid, ticket, csrfToken, skipTlsVerify, 5, 2);
           }
           const vmName = rv.name || `vm-${rv.vmid}`;
-          log(`  ${vmName} (vmid ${rv.vmid}) [${rv.status}]${ip ? ` ip=${ip}` : ""}`);
+          log(`  ${vmName} (vmid ${rv.vmid}) [${rv.status}]${ip ? ` ip=${ip}` : ""}${rv.maxmem ? ` mem=${Math.round(rv.maxmem/1024**3)}GB` : ""}`);
           const handle = await context.writeResource("vm", vmName, {
             vmid: rv.vmid, vmName, status: rv.status, ip,
+            maxmem: rv.maxmem,
+            maxcpu: rv.maxcpu,
             logs: logs.join("\n"),
             timestamp: new Date().toISOString(),
           });

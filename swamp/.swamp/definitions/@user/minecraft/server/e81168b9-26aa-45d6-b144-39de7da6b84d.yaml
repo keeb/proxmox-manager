@@ -1,0 +1,14 @@
+type: '@user/minecraft/server'
+typeVersion: 2026.02.16.1
+id: e81168b9-26aa-45d6-b144-39de7da6b84d
+name: infinityMinecraft
+version: 1
+tags: {}
+globalArguments:
+  sshHost: '${{ model.fleet.resource.vm["infinity"].attributes.ip }}'
+  sshUser: root
+  tmuxSession: infinity
+  serverDir: ~/game
+  startScript: ./start.sh
+  logPath: ~/game/logs/latest.log
+  serverName: infinity

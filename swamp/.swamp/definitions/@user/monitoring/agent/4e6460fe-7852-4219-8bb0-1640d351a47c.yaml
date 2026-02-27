@@ -1,0 +1,20 @@
+type: '@user/monitoring/agent'
+typeVersion: 2026.02.14.2
+id: 4e6460fe-7852-4219-8bb0-1640d351a47c
+name: monitoringAgent
+version: 1
+tags: {}
+globalArguments:
+  sshHost: '${{ model.fleet.resource.vm[inputs.vmName].attributes.ip }}'
+  sshUser: root
+methods:
+  install:
+    arguments:
+      vmName: '${{ inputs.vmName }}'
+  configure:
+    arguments:
+      vmName: '${{ inputs.vmName }}'
+      lokiUrl: '${{ model.hancockMonitoring.resource.hub.hub.attributes.lokiPushUrl }}'
+  enableTextfileCollector:
+    arguments:
+      vmName: '${{ inputs.vmName }}'

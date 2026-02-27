@@ -1,0 +1,229 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 2,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Library Overview",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "bea14157-8927-407b-8b48-f0cfaa53862d" },
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "purple", "mode": "fixed" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": 0 }] } }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "links": [{ "title": "Jellyfin Library", "url": "http://jellyfin.treehouse.local/web/index.html#!/library", "targetBlank": true }],
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "expr": "mms_inventory_anime_titles", "instant": true, "refId": "A" }],
+      "title": "Anime Titles",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "bea14157-8927-407b-8b48-f0cfaa53862d" },
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "purple", "mode": "fixed" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": 0 }] } }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "links": [{ "title": "Jellyfin Library", "url": "http://jellyfin.treehouse.local/web/index.html#!/library", "targetBlank": true }],
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "expr": "mms_inventory_anime_episodes", "instant": true, "refId": "A" }],
+      "title": "Anime Episodes",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "bea14157-8927-407b-8b48-f0cfaa53862d" },
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "blue", "mode": "fixed" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": 0 }] } }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "links": [{ "title": "Jellyfin Library", "url": "http://jellyfin.treehouse.local/web/index.html#!/library", "targetBlank": true }],
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "expr": "mms_inventory_movie_titles", "instant": true, "refId": "A" }],
+      "title": "Movie Titles",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "bea14157-8927-407b-8b48-f0cfaa53862d" },
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "green", "mode": "fixed" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": 0 }] } }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "id": 4,
+      "links": [{ "title": "Jellyfin Library", "url": "http://jellyfin.treehouse.local/web/index.html#!/library", "targetBlank": true }],
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "expr": "mms_inventory_show_titles", "instant": true, "refId": "A" }],
+      "title": "TV Show Titles",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "bea14157-8927-407b-8b48-f0cfaa53862d" },
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "green", "mode": "fixed" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": 0 }] } }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "links": [{ "title": "Jellyfin Library", "url": "http://jellyfin.treehouse.local/web/index.html#!/library", "targetBlank": true }],
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "expr": "mms_inventory_show_episodes", "instant": true, "refId": "A" }],
+      "title": "TV Show Episodes",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "bea14157-8927-407b-8b48-f0cfaa53862d" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [] },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 4, "x": 20, "y": 1 },
+      "id": 7,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "pieType": "donut",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "sort": "desc",
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "mms_inventory_anime_episodes", "instant": true, "legendFormat": "Anime", "refId": "A" },
+        { "expr": "mms_inventory_movie_titles", "instant": true, "legendFormat": "Movies", "refId": "B" },
+        { "expr": "mms_inventory_show_episodes", "instant": true, "legendFormat": "TV", "refId": "C" }
+      ],
+      "title": "Library Composition",
+      "type": "piechart"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "id": 101,
+      "title": "Growth",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "bea14157-8927-407b-8b48-f0cfaa53862d" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "fillOpacity": 10, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": 0 }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 11, "w": 24, "x": 0, "y": 10 },
+      "id": 6,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "min", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "mms_inventory_anime_titles", "legendFormat": "Anime Titles", "refId": "A" },
+        { "expr": "mms_inventory_anime_episodes", "legendFormat": "Anime Episodes", "refId": "B" },
+        { "expr": "mms_inventory_movie_titles", "legendFormat": "Movies", "refId": "C" },
+        { "expr": "mms_inventory_show_titles", "legendFormat": "TV Titles", "refId": "D" },
+        { "expr": "mms_inventory_show_episodes", "legendFormat": "TV Episodes", "refId": "E" }
+      ],
+      "title": "Library Growth Over Time",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": true,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 21 },
+      "id": 102,
+      "panels": [
+        {
+          "datasource": { "type": "prometheus", "uid": "bea14157-8927-407b-8b48-f0cfaa53862d" },
+          "fieldConfig": { "defaults": { "color": { "fixedColor": "orange", "mode": "fixed" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": 0 }] } }, "overrides": [] },
+          "gridPos": { "h": 4, "w": 4, "x": 0, "y": 22 },
+          "id": 8,
+          "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+          "targets": [{ "expr": "mms_activity_episodes_watched_7d", "instant": true, "refId": "A" }],
+          "title": "Watched (7d)",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "bea14157-8927-407b-8b48-f0cfaa53862d" },
+          "fieldConfig": { "defaults": { "color": { "fixedColor": "orange", "mode": "fixed" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": 0 }] } }, "overrides": [] },
+          "gridPos": { "h": 4, "w": 4, "x": 4, "y": 22 },
+          "id": 9,
+          "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+          "targets": [{ "expr": "mms_activity_episodes_watched_30d", "instant": true, "refId": "A" }],
+          "title": "Watched (30d)",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "bea14157-8927-407b-8b48-f0cfaa53862d" },
+          "fieldConfig": { "defaults": { "color": { "fixedColor": "yellow", "mode": "fixed" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": 0 }] } }, "overrides": [] },
+          "gridPos": { "h": 4, "w": 4, "x": 8, "y": 22 },
+          "id": 10,
+          "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+          "targets": [{ "expr": "mms_activity_total_played", "instant": true, "refId": "A" }],
+          "title": "All Time Played",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "bea14157-8927-407b-8b48-f0cfaa53862d" },
+          "fieldConfig": { "defaults": { "color": { "fixedColor": "red", "mode": "fixed" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": 0 }] } }, "overrides": [] },
+          "gridPos": { "h": 4, "w": 4, "x": 12, "y": 22 },
+          "id": 11,
+          "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+          "targets": [{ "expr": "mms_activity_continue_watching", "instant": true, "refId": "A" }],
+          "title": "Continue Watching",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "bea14157-8927-407b-8b48-f0cfaa53862d" },
+          "fieldConfig": {
+            "defaults": {
+              "custom": { "align": "left", "cellOptions": { "type": "auto" }, "filterable": false, "inspect": false },
+              "mappings": [],
+              "thresholds": { "mode": "absolute", "steps": [{ "color": "text", "value": null }, { "color": "yellow", "value": 25 }, { "color": "green", "value": 75 }] }
+            },
+            "overrides": [
+              { "matcher": { "id": "byName", "options": "Series" }, "properties": [{ "id": "custom.width", "value": 250 }, { "id": "links", "value": [{ "title": "Search Jellyfin", "url": "http://jellyfin.treehouse.local/web/index.html#!/search?query=${__value.text}", "targetBlank": true }] }] },
+              { "matcher": { "id": "byName", "options": "Episode" }, "properties": [{ "id": "custom.width", "value": 200 }] },
+              { "matcher": { "id": "byName", "options": "Progress" }, "properties": [{ "id": "unit", "value": "percent" }, { "id": "custom.width", "value": 80 }, { "id": "custom.cellOptions", "value": { "mode": "gradient", "type": "gauge" } }] }
+            ]
+          },
+          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 26 },
+          "id": 12,
+          "options": {
+            "cellHeight": "sm",
+            "showHeader": true,
+            "sortBy": [{ "desc": true, "displayName": "Progress" }],
+            "footer": { "show": false }
+          },
+          "pluginVersion": "12.3.3",
+          "targets": [{ "expr": "mms_activity_resume_item", "format": "table", "instant": true, "refId": "A" }],
+          "title": "Continue Watching",
+          "transformations": [
+            { "id": "organize", "options": { "excludeByName": { "Time": true, "__name__": true, "instance": true, "job": true }, "renameByName": { "Value": "Progress", "episode": "Episode", "series": "Series" } } }
+          ],
+          "type": "table"
+        }
+      ],
+      "title": "Activity",
+      "type": "row"
+    }
+  ],
+  "preload": false,
+  "refresh": "1m",
+  "schemaVersion": 42,
+  "tags": ["media", "inventory", "mms"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30d", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Media Library Inventory",
+  "uid": "d952e8a8-79df-4186-b656-b03ebf032042"
+}

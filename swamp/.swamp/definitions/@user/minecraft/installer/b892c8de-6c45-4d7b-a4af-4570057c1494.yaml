@@ -1,0 +1,27 @@
+type: '@user/minecraft/installer'
+typeVersion: 2026.02.16.1
+id: b892c8de-6c45-4d7b-a4af-4570057c1494
+name: minecraftInstaller
+version: 1
+tags: {}
+globalArguments:
+  sshHost: '${{ model.fleet.resource.vm[inputs.vmName].attributes.ip }}'
+  sshUser: root
+methods:
+  installDeps:
+    arguments:
+      vmName: '${{ inputs.vmName }}'
+  upload:
+    arguments:
+      vmName: '${{ inputs.vmName }}'
+      localPath: '${{ inputs.serverPackPath }}'
+  extract:
+    arguments:
+      vmName: '${{ inputs.vmName }}'
+      remotePath: '${{ model.minecraftInstaller.resource.upload[inputs.vmName].attributes.remotePath }}'
+      serverDir: '${{ inputs.serverDir }}'
+  configure:
+    arguments:
+      vmName: '${{ inputs.vmName }}'
+      serverDir: '${{ model.minecraftInstaller.resource.server[inputs.vmName].attributes.serverDir }}'
+      jvmMemory: '${{ inputs.jvmMemory }}'

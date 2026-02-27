@@ -1,35 +1,49 @@
 id: bf99525b-2266-44b3-8e8b-43c70a1e4a9d
 name: configure-proxy
-description: Configure nginx stream proxy on treehouse for a backend service
+description: Configure nginx stream proxy for a backend service
 inputs:
   vmName:
     type: string
     required: true
     description: Service name (e.g. 'allthemons')
-  targetIp:
-    type: string
-    required: true
-    description: Tailscale IP of the backend service
   portMap:
     type: string
     required: true
     description: "Port mappings: 'listen:backend[/proto],...' e.g. '25565:25565,7777:7777/udp'"
 jobs:
   - name: configure
-    description: Write nginx config and update docker-compose ports
+    description: Sync tailnet, then write nginx config and update docker-compose ports
     steps:
+      - name: tailscale-status
+        task:
+          type: model_method
+          modelIdOrName: tailscaleStatus
+          methodName: execute
+          inputs:
+            run: 'tailscale status --json'
+      - name: sync-machines
+        task:
+          type: model_method
+          modelIdOrName: tailnet
+          methodName: sync
+          inputs:
+            statusJson: '${{ model.tailscaleStatus.resource.result.result.attributes.stdout }}'
+        dependsOn:
+          - step: tailscale-status
+            condition:
+              type: succeeded
       - name: configure-proxy
         description: Configure stream proxy for the service
         task:
           type: model_method
-          modelIdOrName: treehouse
+          modelIdOrName: streamProxy
           methodName: configure
           inputs:
             vmName: '${{ inputs.vmName }}'
-            targetIp: '${{ inputs.targetIp }}'
+            targetIp: '${{ model.tailnet.resource.machine[inputs.vmName].attributes.tailscaleIp }}'
             portMap: '${{ inputs.portMap }}'
-        dependsOn: []
-        weight: 0
-    dependsOn: []
-    weight: 0
+        dependsOn:
+          - step: sync-machines
+            condition:
+              type: succeeded
 version: 1

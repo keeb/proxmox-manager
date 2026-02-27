@@ -1,14 +1,16 @@
 type: "@user/nginx/stream"
-typeVersion: 2026.02.10.0
+typeVersion: 2026.02.14.1
 id: 8a3efbfc-88fb-4744-a8d7-5c9e0a835773
-name: treehouse
+name: streamProxy
 version: 1
 tags: {}
 globalArguments:
-  sshHost: treehouse
+  sshHost: keeb
   sshUser: keeb
   streamDir: ~/stream
 methods:
+  init:
+    arguments: {}
   configure:
     arguments:
       vmName: '${{ inputs.vmName }}'

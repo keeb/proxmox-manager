@@ -1,0 +1,34 @@
+{
+  "title": "Metrics Stale",
+  "ruleGroup": "game-servers",
+  "folderUID": "afdny0umjbytcb",
+  "condition": "C",
+  "for": "5m",
+  "noDataState": "OK",
+  "execErrState": "Error",
+  "labels": { "severity": "warning" },
+  "annotations": { "summary": "Game metrics collection stale for {{ $labels.server }} (>10min)" },
+  "data": [
+    {
+      "refId": "A",
+      "relativeTimeRange": { "from": 600, "to": 0 },
+      "datasourceUid": "bea14157-8927-407b-8b48-f0cfaa53862d",
+      "model": {
+        "expr": "time() - game_metrics_collected_at",
+        "refId": "A"
+      }
+    },
+    {
+      "refId": "B",
+      "relativeTimeRange": { "from": 600, "to": 0 },
+      "datasourceUid": "__expr__",
+      "model": { "type": "reduce", "expression": "A", "reducer": "last", "refId": "B" }
+    },
+    {
+      "refId": "C",
+      "relativeTimeRange": { "from": 600, "to": 0 },
+      "datasourceUid": "__expr__",
+      "model": { "type": "threshold", "expression": "B", "conditions": [{ "evaluator": { "type": "gt", "params": [600] } }], "refId": "C" }
+    }
+  ]
+}

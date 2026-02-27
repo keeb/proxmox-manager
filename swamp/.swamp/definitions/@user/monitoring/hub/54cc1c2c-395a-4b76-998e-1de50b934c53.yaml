@@ -1,0 +1,15 @@
+type: '@user/monitoring/hub'
+typeVersion: 2026.02.14.1
+id: 54cc1c2c-395a-4b76-998e-1de50b934c53
+name: hancockMonitoring
+version: 1
+tags: {}
+globalArguments:
+  sshHost: '10.0.0.12'
+  sshUser: keeb
+  targetsDir: /storage/02/linux/docker/prometheus/targets
+methods:
+  register:
+    arguments:
+      vmName: '${{ inputs.vmName }}'
+      targetIp: '${{ model.fleet.resource.vm[inputs.vmName].attributes.ip }}'

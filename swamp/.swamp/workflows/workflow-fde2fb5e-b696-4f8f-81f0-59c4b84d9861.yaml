@@ -1,0 +1,62 @@
+id: fde2fb5e-b696-4f8f-81f0-59c4b84d9861
+name: collect-game-metrics
+description: Collect player metrics from all configured game servers
+jobs:
+  - name: collect
+    description: Auth, sync fleet, collect metrics from each game server
+    steps:
+      - name: auth
+        description: Authenticate with Proxmox
+        task:
+          type: model_method
+          modelIdOrName: keebDev02
+          methodName: auth
+        dependsOn: []
+        weight: 0
+      - name: sync-fleet
+        description: Sync all VMs into fleet (populates IPs)
+        task:
+          type: model_method
+          modelIdOrName: fleet
+          methodName: sync
+        dependsOn:
+          - step: auth
+            condition:
+              type: succeeded
+        weight: 0
+      - name: collect-allthemons
+        description: Collect Minecraft player metrics from allthemons
+        task:
+          type: model_method
+          modelIdOrName: allthemonsMinecraft
+          methodName: collectMetrics
+        dependsOn:
+          - step: sync-fleet
+            condition:
+              type: succeeded
+        weight: 0
+      - name: collect-calamity
+        description: Collect Terraria player metrics from calamity
+        task:
+          type: model_method
+          modelIdOrName: calamityTerraria
+          methodName: collectMetrics
+        dependsOn:
+          - step: sync-fleet
+            condition:
+              type: succeeded
+        weight: 0
+      - name: collect-infinity
+        description: Collect Minecraft player metrics from infinity
+        task:
+          type: model_method
+          modelIdOrName: infinityMinecraft
+          methodName: collectMetrics
+        dependsOn:
+          - step: sync-fleet
+            condition:
+              type: succeeded
+        weight: 0
+    dependsOn: []
+    weight: 0
+version: 1

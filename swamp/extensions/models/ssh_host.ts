@@ -38,7 +38,7 @@ const ResultSchema = z.object({
 
 export const model = {
   type: "@user/ssh/host",
-  version: "2026.02.11.1",
+  version: "2026.02.18.1",
   resources: {
     "result": {
       description: "SSH operation result",
@@ -87,18 +87,19 @@ export const model = {
         log(`Uploading ${source} to ${user}@${host}:${dest}`);
 
         // @ts-ignore - Deno API
-        const rsync = new Deno.Command("rsync", {
+        const scp = new Deno.Command("scp", {
           args: [
-            "-avz",
-            "-e", "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "UserKnownHostsFile=/dev/null",
+            "-o", "ConnectTimeout=10",
             source,
             `${user}@${host}:${dest}`,
           ],
         });
-        const result = await rsync.output();
+        const result = await scp.output();
         if (result.code !== 0) {
           const err = new TextDecoder().decode(result.stderr);
-          throw new Error(`rsync failed: ${err}`);
+          throw new Error(`scp failed: ${err}`);
         }
         log(`Upload complete`);
 

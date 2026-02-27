@@ -1,0 +1,8 @@
+type: command/shell
+typeVersion: 2026.02.09.1
+id: 6590d202-4eb2-4dc5-8502-16ebaec0edd9
+name: tailscaleStatus
+version: 1
+tags: {}
+globalArguments: {}
+methods: {}

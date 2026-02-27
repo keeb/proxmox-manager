@@ -1,0 +1,34 @@
+{
+  "title": "Disk Warning",
+  "ruleGroup": "infrastructure",
+  "folderUID": "afdny0umjbytcb",
+  "condition": "C",
+  "for": "10m",
+  "noDataState": "OK",
+  "execErrState": "Error",
+  "labels": { "severity": "warning" },
+  "annotations": { "summary": "Disk usage above 85% on {{ $labels.instance }} {{ $labels.mountpoint }}" },
+  "data": [
+    {
+      "refId": "A",
+      "relativeTimeRange": { "from": 600, "to": 0 },
+      "datasourceUid": "bea14157-8927-407b-8b48-f0cfaa53862d",
+      "model": {
+        "expr": "(1 - node_filesystem_avail_bytes{fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes) * 100",
+        "refId": "A"
+      }
+    },
+    {
+      "refId": "B",
+      "relativeTimeRange": { "from": 600, "to": 0 },
+      "datasourceUid": "__expr__",
+      "model": { "type": "reduce", "expression": "A", "reducer": "last", "refId": "B" }
+    },
+    {
+      "refId": "C",
+      "relativeTimeRange": { "from": 600, "to": 0 },
+      "datasourceUid": "__expr__",
+      "model": { "type": "threshold", "expression": "B", "conditions": [{ "evaluator": { "type": "gt", "params": [85] } }], "refId": "C" }
+    }
+  ]
+}

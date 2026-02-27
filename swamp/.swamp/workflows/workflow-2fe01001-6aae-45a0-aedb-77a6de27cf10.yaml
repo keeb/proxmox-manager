@@ -1,0 +1,35 @@
+id: 2fe01001-6aae-45a0-aedb-77a6de27cf10
+name: init-proxy
+description: Bootstrap nginx stream proxy on the proxy server
+tags: {}
+inputs:
+  vmName:
+    type: string
+    required: false
+    default: _unused
+    description: Unused (required by definition CEL)
+  targetIp:
+    type: string
+    required: false
+    default: _unused
+    description: Unused (required by definition CEL)
+  portMap:
+    type: string
+    required: false
+    default: _unused
+    description: Unused (required by definition CEL)
+jobs:
+  - name: init
+    description: Bootstrap stream proxy directory and start nginx container
+    steps:
+      - name: init-proxy
+        description: Create stream directory, write nginx.conf and docker-compose.yml, start container
+        task:
+          type: model_method
+          modelIdOrName: streamProxy
+          methodName: init
+        dependsOn: []
+        weight: 0
+    dependsOn: []
+    weight: 0
+version: 1

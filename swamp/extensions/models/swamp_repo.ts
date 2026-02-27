@@ -41,13 +41,18 @@ export const model = {
       description: "Rsync swamp repo to remote host",
       arguments: z.object({
         excludes: z.union([z.array(z.string()), z.string()]).default([]).describe("Additional rsync excludes"),
+        localDir: z.string().optional().describe("Override source directory (absolute or relative to repoDir)"),
+        remoteSubdir: z.string().optional().describe("Subdirectory within remoteDir to sync into"),
       }),
       execute: async (args, context) => {
         const { sshHost, sshUser = "root", remoteDir } = context.globalArgs;
         if (!isValidSshHost(sshHost)) throw new Error("sshHost is required — is the target VM running?");
 
         const userExcludes = typeof args.excludes === "string" ? JSON.parse(args.excludes) : args.excludes;
-        const repoDir = context.repoDir;
+        const sourceDir = args.localDir
+          ? (args.localDir.startsWith("/") ? args.localDir : `${context.repoDir}/${args.localDir}`)
+          : context.repoDir;
+        const targetDir = args.remoteSubdir ? `${remoteDir}/${args.remoteSubdir}` : remoteDir;
         const logs = [];
         const log = (msg) => logs.push(msg);
 
@@ -59,15 +64,15 @@ export const model = {
           excludeArgs.push("--exclude", ex);
         }
 
-        log(`Syncing repo to ${sshUser}@${sshHost}:${remoteDir}`);
+        log(`Syncing ${sourceDir} to ${sshUser}@${sshHost}:${targetDir}`);
         // @ts-ignore - Deno API
         const rsync = new Deno.Command("rsync", {
           args: [
             "-avz", "--delete",
             "-e", "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10",
             ...excludeArgs,
-            `${repoDir}/`,
-            `${sshUser}@${sshHost}:${remoteDir}/`,
+            `${sourceDir}/`,
+            `${sshUser}@${sshHost}:${targetDir}/`,
           ],
         });
         const result = await rsync.output();
@@ -139,6 +144,52 @@ export const model = {
         const handle = await context.writeResource("repo", "binary", {
           remoteDir,
           component: "binary",
+          success: true,
+          logs: logs.join("\n"),
+          timestamp: new Date().toISOString(),
+        });
+        return { dataHandles: [handle] };
+      },
+    },
+
+    syncAuth: {
+      description: "Copy swamp auth config to remote host",
+      arguments: z.object({}),
+      execute: async (_args, context) => {
+        const { sshHost, sshUser = "root" } = context.globalArgs;
+        if (!isValidSshHost(sshHost)) throw new Error("sshHost is required — is the target VM running?");
+
+        const logs = [];
+        const log = (msg) => logs.push(msg);
+
+        // @ts-ignore - Deno API
+        const home = Deno.env.get("HOME");
+        const localPath = `${home}/.config/swamp/auth.json`;
+
+        log(`Ensuring ~/.config/swamp/ on ${sshHost}`);
+        await sshExec(sshHost, sshUser, "mkdir -p ~/.config/swamp");
+
+        log(`Copying auth.json to ${sshUser}@${sshHost}`);
+        // @ts-ignore - Deno API
+        const scp = new Deno.Command("scp", {
+          args: [
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "UserKnownHostsFile=/dev/null",
+            "-o", "ConnectTimeout=10",
+            localPath,
+            `${sshUser}@${sshHost}:.config/swamp/auth.json`,
+          ],
+        });
+        const result = await scp.output();
+        if (result.code !== 0) {
+          const err = new TextDecoder().decode(result.stderr);
+          throw new Error(`scp auth.json failed: ${err}`);
+        }
+        log("Auth config synced");
+
+        const handle = await context.writeResource("repo", "auth", {
+          remoteDir: context.globalArgs.remoteDir,
+          component: "auth",
           success: true,
           logs: logs.join("\n"),
           timestamp: new Date().toISOString(),

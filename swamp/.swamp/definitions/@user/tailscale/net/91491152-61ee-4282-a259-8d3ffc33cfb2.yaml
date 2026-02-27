@@ -1,0 +1,8 @@
+type: '@user/tailscale/net'
+typeVersion: 2026.02.14.1
+id: 91491152-61ee-4282-a259-8d3ffc33cfb2
+name: tailnet
+version: 1
+tags: {}
+globalArguments: {}
+methods: {}

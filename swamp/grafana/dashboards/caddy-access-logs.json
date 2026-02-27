@@ -1,0 +1,340 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": false,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Deploys",
+        "target": { "limit": 100, "matchAny": true, "tags": ["deploy"], "type": "tags" },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "graphTooltip": 2,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Overview",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "i4mQtaH4z" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 50 }, { "color": "red", "value": 200 }] },
+          "unit": "reqps"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "editorMode": "code", "expr": "sum(count_over_time({job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_uri=~`$path` | request_remote_ip=~`$client_ip` [1m])) / 60", "queryType": "range", "refId": "A" }],
+      "title": "Requests / sec",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "i4mQtaH4z" },
+      "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "blue", "value": null }] }, "unit": "short" } },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "editorMode": "code", "expr": "sum(count_over_time({job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_uri=~`$path` | request_remote_ip=~`$client_ip` [$__range]))", "queryType": "range", "refId": "A" }],
+      "title": "Total Requests",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "i4mQtaH4z" },
+      "fieldConfig": { "defaults": { "decimals": 1, "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 5 }, { "color": "red", "value": 20 }] }, "unit": "percent" } },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "editorMode": "code", "expr": "(sum(count_over_time({job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_uri=~`$path` | request_remote_ip=~`$client_ip` | status >= 400 [$__range])) or vector(0)) / sum(count_over_time({job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_uri=~`$path` | request_remote_ip=~`$client_ip` [$__range])) * 100", "queryType": "range", "refId": "A" }],
+      "title": "Error Rate (4xx+5xx)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "i4mQtaH4z" },
+      "fieldConfig": { "defaults": { "decimals": 1, "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 100 }, { "color": "red", "value": 500 }] }, "unit": "ms" } },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "id": 4,
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "editorMode": "code", "expr": "avg(avg_over_time({job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_uri=~`$path` | request_remote_ip=~`$client_ip` | unwrap duration [$__range])) * 1000", "queryType": "instant", "refId": "A" }],
+      "title": "Avg Response Time",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "i4mQtaH4z" },
+      "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "purple", "value": null }] }, "unit": "decbytes" } },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "editorMode": "code", "expr": "sum(sum_over_time({job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_uri=~`$path` | request_remote_ip=~`$client_ip` | unwrap size [$__range]))", "queryType": "instant", "refId": "A" }],
+      "title": "Bandwidth Served",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "i4mQtaH4z" },
+      "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "blue", "value": null }] }, "unit": "short" } },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "id": 6,
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "editorMode": "code", "expr": "count(sum by (request_remote_ip) (count_over_time({job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_uri=~`$path` | request_remote_ip=~`$client_ip` [$__range])))", "queryType": "instant", "refId": "A" }],
+      "title": "Unique IPs",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "i4mQtaH4z" },
+      "fieldConfig": {
+        "defaults": { "custom": { "fillOpacity": 30, "lineWidth": 1, "stacking": { "mode": "normal" } } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "2xx" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "3xx" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "4xx" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "5xx" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 16, "x": 0, "y": 5 },
+      "id": 10,
+      "links": [
+        {
+          "title": "Explore logs",
+          "url": "/explore?left={\"datasource\":\"i4mQtaH4z\",\"queries\":[{\"expr\":\"{job=\\\"caddy\\\"} | json | logger=\\`http.log.access\\` | request_host=~\\`$host\\`\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+          "targetBlank": true
+        }
+      ],
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "editorMode": "code", "expr": "sum(count_over_time({job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_uri=~`$path` | request_remote_ip=~`$client_ip` | status >= 200 | status < 300 [$__auto]))", "legendFormat": "2xx", "queryType": "range", "refId": "A" },
+        { "editorMode": "code", "expr": "sum(count_over_time({job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_uri=~`$path` | request_remote_ip=~`$client_ip` | status >= 300 | status < 400 [$__auto]))", "legendFormat": "3xx", "queryType": "range", "refId": "B" },
+        { "editorMode": "code", "expr": "sum(count_over_time({job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_uri=~`$path` | request_remote_ip=~`$client_ip` | status >= 400 | status < 500 [$__auto]))", "legendFormat": "4xx", "queryType": "range", "refId": "C" },
+        { "editorMode": "code", "expr": "sum(count_over_time({job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_uri=~`$path` | request_remote_ip=~`$client_ip` | status >= 500 [$__auto]))", "legendFormat": "5xx", "queryType": "range", "refId": "D" }
+      ],
+      "title": "Requests Over Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "i4mQtaH4z" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 5 },
+      "id": 11,
+      "links": [
+        {
+          "title": "Filter by status class",
+          "url": "/d/caddy-access-logs/caddy-access-logs?var-status_class=${__value.text}&${__url_time_range}"
+        }
+      ],
+      "options": { "legend": { "placement": "right" }, "pieType": "donut", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "editorMode": "code", "expr": "sum by (status) (count_over_time({job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_uri=~`$path` | request_remote_ip=~`$client_ip` | status=~`$status_class` [$__range]))", "legendFormat": "{{status}}", "queryType": "range", "refId": "A" }],
+      "title": "Status Codes",
+      "type": "piechart"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "i4mQtaH4z" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 13 },
+      "id": 41,
+      "options": { "enableLogDetails": true, "showCommonLabels": false, "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true },
+      "targets": [{ "editorMode": "code", "expr": "{job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_uri=~`$path` | request_remote_ip=~`$client_ip` | status >= 400", "queryType": "range", "refId": "A" }],
+      "title": "Errors (4xx / 5xx)",
+      "type": "logs"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 21 },
+      "id": 101,
+      "title": "Performance",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "i4mQtaH4z" },
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 20, "lineWidth": 1 } } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
+      "id": 20,
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [{ "editorMode": "code", "expr": "sum by (request_host) (count_over_time({job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_uri=~`$path` | request_remote_ip=~`$client_ip` [$__auto]))", "legendFormat": "{{request_host}}", "queryType": "range", "refId": "A" }],
+      "title": "Requests by Host",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "i4mQtaH4z" },
+      "fieldConfig": {
+        "defaults": { "custom": { "fillOpacity": 10, "lineWidth": 1 }, "unit": "ms" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "p50" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "p95" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "p99" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 },
+      "id": 21,
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "editorMode": "code", "expr": "quantile_over_time(0.50, {job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_uri=~`$path` | request_remote_ip=~`$client_ip` | unwrap duration [$__auto]) * 1000", "legendFormat": "p50", "queryType": "range", "refId": "A" },
+        { "editorMode": "code", "expr": "quantile_over_time(0.95, {job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_uri=~`$path` | request_remote_ip=~`$client_ip` | unwrap duration [$__auto]) * 1000", "legendFormat": "p95", "queryType": "range", "refId": "B" },
+        { "editorMode": "code", "expr": "quantile_over_time(0.99, {job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_uri=~`$path` | request_remote_ip=~`$client_ip` | unwrap duration [$__auto]) * 1000", "legendFormat": "p99", "queryType": "range", "refId": "C" }
+      ],
+      "title": "Response Time (p50 / p95 / p99)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "i4mQtaH4z" },
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "purple", "mode": "fixed" }, "custom": { "fillOpacity": 30, "gradientMode": "scheme", "lineWidth": 1 }, "unit": "decbytes" } },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 30 },
+      "id": 40,
+      "targets": [{ "editorMode": "code", "expr": "sum(sum_over_time({job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_uri=~`$path` | request_remote_ip=~`$client_ip` | unwrap size [$__auto]))", "legendFormat": "Bytes served", "queryType": "range", "refId": "A" }],
+      "title": "Bandwidth Over Time",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 38 },
+      "id": 102,
+      "title": "Investigation",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "i4mQtaH4z" },
+      "fieldConfig": {
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "request_uri" }, "properties": [{ "id": "displayName", "value": "Path" }, { "id": "links", "value": [{ "title": "Filter by path", "url": "/d/caddy-access-logs/caddy-access-logs?var-path=${__value.text}&${__url_time_range}" }] }] },
+          { "matcher": { "id": "byName", "options": "Value #A" }, "properties": [{ "id": "displayName", "value": "Hits" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 39 },
+      "id": 30,
+      "targets": [{ "editorMode": "code", "expr": "topk(25, sum by (request_uri) (count_over_time({job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_remote_ip=~`$client_ip` | status >= 200 | status < 300 | request_uri !~ `(?i)(\\.(env|git|aws|ssh|DS_Store|php|asp|aspx|jsp|cgi)|wp-(admin|login|includes|content)|phpmyadmin|xmlrpc|/cgi-bin|/vendor/|/backup|/actuator|/solr|/manager|/console|/telescope|/debug|/eval-stdin|/HNAP)` | request_uri !~ `\\.(css|js|png|jpg|jpeg|gif|svg|ico|woff2?|ttf|eot|map|xml|txt|json)(\\?.*)?$` | request_uri !~ `^/(robots\\.txt|sitemap\\.xml|favicon\\.ico)$` [$__range])))", "queryType": "instant", "refId": "A" }],
+      "title": "Top Pages",
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true } } },
+        { "id": "sortBy", "options": { "sort": [{ "desc": true, "field": "Value #A" }] } }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "i4mQtaH4z" },
+      "fieldConfig": {
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "request_remote_ip" }, "properties": [{ "id": "displayName", "value": "IP" }, { "id": "links", "value": [{ "title": "Lookup on AbuseIPDB", "url": "https://www.abuseipdb.com/check/${__value.text}", "targetBlank": true }, { "title": "Filter dashboard by IP", "url": "/d/caddy-access-logs/caddy-access-logs?var-client_ip=${__value.text}&${__url_time_range}" }] }] },
+          { "matcher": { "id": "byName", "options": "Value #A" }, "properties": [{ "id": "displayName", "value": "Requests" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 39 },
+      "id": 31,
+      "targets": [{ "editorMode": "code", "expr": "topk(20, sum by (request_remote_ip) (count_over_time({job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_uri=~`$path` | request_remote_ip=~`$client_ip` [$__range])))", "queryType": "instant", "refId": "A" }],
+      "title": "Top IPs",
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true } } },
+        { "id": "sortBy", "options": { "sort": [{ "desc": true, "field": "Value #A" }] } }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "i4mQtaH4z" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 39 },
+      "id": 32,
+      "targets": [{ "editorMode": "code", "expr": "topk(20, sum by (user_agent) (count_over_time({job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_uri=~`$path` | request_remote_ip=~`$client_ip` | regexp `\"User-Agent\":\\[\"(?P<user_agent>[^\"]+)\"\\]` | user_agent != `` [$__range])))", "queryType": "instant", "refId": "A" }],
+      "title": "Top User Agents",
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true }, "renameByName": { "Value": "Requests", "Value #A": "Requests", "user_agent": "User Agent" } } },
+        { "id": "sortBy", "options": { "sort": [{ "desc": true, "field": "Requests" }] } }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "i4mQtaH4z" },
+      "fieldConfig": {
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "request_uri" }, "properties": [{ "id": "displayName", "value": "Path" }] },
+          { "matcher": { "id": "byName", "options": "status" }, "properties": [{ "id": "displayName", "value": "Status" }] },
+          { "matcher": { "id": "byName", "options": "Value #A" }, "properties": [{ "id": "displayName", "value": "Count" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 47 },
+      "id": 50,
+      "targets": [{ "editorMode": "code", "expr": "topk(20, sum by (request_uri, status) (count_over_time({job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_remote_ip=~`$client_ip` | status >= 400 [$__range])))", "queryType": "instant", "refId": "A" }],
+      "title": "Errors by Path",
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true } } },
+        { "id": "sortBy", "options": { "sort": [{ "desc": true, "field": "Value #A" }] } }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "i4mQtaH4z" },
+      "fieldConfig": {
+        "defaults": { "unit": "ms" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "request_uri" }, "properties": [{ "id": "displayName", "value": "Path" }] },
+          { "matcher": { "id": "byName", "options": "Value #A" }, "properties": [{ "id": "displayName", "value": "p95 Response Time" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 47 },
+      "id": 51,
+      "targets": [{ "editorMode": "code", "expr": "topk(10, quantile_over_time(0.95, {job=\"caddy\"} | json | logger=`http.log.access` | request_host=~`$host` | request_remote_ip=~`$client_ip` | unwrap duration [$__range]) by (request_uri)) * 1000", "queryType": "instant", "refId": "A" }],
+      "title": "Slowest Paths (p95)",
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true } } },
+        { "id": "sortBy", "options": { "sort": [{ "desc": true, "field": "Value #A" }] } }
+      ],
+      "type": "table"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["caddy", "loki", "web"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": true, "text": "All", "value": ".*" },
+        "label": "Host",
+        "name": "host",
+        "options": [
+          { "selected": true, "text": "All", "value": ".*" },
+          { "selected": false, "text": "keeb.dev", "value": "keeb.dev" },
+          { "selected": false, "text": "counter.keeb.dev", "value": "counter.keeb.dev" },
+          { "selected": false, "text": "gameswiththebois.com", "value": "gameswiththebois.com" }
+        ],
+        "query": "All : .*,keeb.dev,counter.keeb.dev,gameswiththebois.com",
+        "type": "custom"
+      },
+      {
+        "current": { "selected": true, "text": "All", "value": ".*" },
+        "label": "Status",
+        "name": "status_class",
+        "options": [
+          { "selected": true, "text": "All", "value": ".*" },
+          { "selected": false, "text": "2xx", "value": "2.." },
+          { "selected": false, "text": "3xx", "value": "3.." },
+          { "selected": false, "text": "4xx", "value": "4.." },
+          { "selected": false, "text": "5xx", "value": "5.." }
+        ],
+        "query": "All : .*,2xx : 2..,3xx : 3..,4xx : 4..,5xx : 5..",
+        "type": "custom"
+      },
+      {
+        "current": { "selected": false, "text": ".*", "value": ".*" },
+        "label": "Path",
+        "name": "path",
+        "options": [],
+        "query": ".*",
+        "type": "textbox"
+      },
+      {
+        "current": { "selected": false, "text": ".*", "value": ".*" },
+        "label": "Client IP",
+        "name": "client_ip",
+        "options": [],
+        "query": ".*",
+        "type": "textbox"
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "browser",
+  "title": "Caddy Access Logs",
+  "uid": "caddy-access-logs"
+}

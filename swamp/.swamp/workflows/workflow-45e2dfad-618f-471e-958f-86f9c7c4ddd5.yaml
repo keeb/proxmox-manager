@@ -1,0 +1,26 @@
+id: 45e2dfad-618f-471e-958f-86f9c7c4ddd5
+name: sync-tailnet
+description: Sync all machines from the Tailscale tailnet
+tags: {}
+jobs:
+  - name: sync
+    steps:
+      - name: tailscale-status
+        task:
+          type: model_method
+          modelIdOrName: tailscaleStatus
+          methodName: execute
+          inputs:
+            run: 'tailscale status --json'
+      - name: sync-machines
+        task:
+          type: model_method
+          modelIdOrName: tailnet
+          methodName: sync
+          inputs:
+            statusJson: '${{ model.tailscaleStatus.resource.result.result.attributes.stdout }}'
+        dependsOn:
+          - step: tailscale-status
+            condition:
+              type: succeeded
+version: 1

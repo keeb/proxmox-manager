@@ -13,6 +13,12 @@ const ConfigureArgs = z.object({
   portMap: z.string().describe("Port mappings: 'listen:backend[/proto],...' e.g. '25565:25565,7777:7777/udp'"),
 });
 
+const InitSchema = z.object({
+  success: z.boolean(),
+  streamDir: z.string(),
+  timestamp: z.string(),
+});
+
 const ProxySchema = z.object({
   success: z.boolean(),
   vmName: z.string(),
@@ -57,8 +63,14 @@ function formatPortLine(listen, proto) {
 
 export const model = {
   type: "@user/nginx/stream",
-  version: "2026.02.11.1",
+  version: "2026.02.14.1",
   resources: {
+    "server": {
+      description: "Proxy server init result",
+      schema: InitSchema,
+      lifetime: "infinite",
+      garbageCollection: 10,
+    },
     "proxy": {
       description: "Proxy configuration result",
       schema: ProxySchema,
@@ -68,6 +80,50 @@ export const model = {
   },
   globalArguments: GlobalArgs,
   methods: {
+    init: {
+      description: "Bootstrap nginx stream proxy directory and start container",
+      arguments: z.object({}),
+      execute: async (_args, context) => {
+        const { sshHost, sshUser = "keeb", streamDir = "~/stream" } = context.globalArgs;
+
+        console.log(`[init] Bootstrapping stream proxy on ${sshHost} at ${streamDir}`);
+
+        // Create directory structure
+        await sshExec(sshHost, sshUser, `mkdir -p ${streamDir}/stream.d`);
+
+        // Write base nginx.conf
+        const nginxConf = `worker_processes 1;
+events { worker_connections 1024; }
+stream { include /stream.d/*.conf; }
+`;
+        await sshExec(sshHost, sshUser, `cat > ${streamDir}/nginx.conf << 'EOF'\n${nginxConf}EOF`);
+
+        // Write base docker-compose.yml
+        const composeYml = `services:
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: stream-proxy
+    ports: []
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./stream.d:/stream.d:ro
+    restart: unless-stopped
+`;
+        await sshExec(sshHost, sshUser, `cat > ${streamDir}/docker-compose.yml << 'EOF'\n${composeYml}EOF`);
+
+        // Pull and start the container
+        console.log(`[init] Starting nginx proxy container`);
+        await sshExec(sshHost, sshUser, `cd ${streamDir} && docker compose up -d`);
+
+        console.log(`[init] Stream proxy bootstrapped successfully`);
+        const handle = await context.writeResource("server", "server", {
+          success: true,
+          streamDir,
+          timestamp: new Date().toISOString(),
+        });
+        return { dataHandles: [handle] };
+      },
+    },
     configure: {
       description: "Configure nginx stream proxy for a service",
       arguments: ConfigureArgs,
@@ -111,23 +167,36 @@ export const model = {
         if (portsToAdd.length > 0) {
           console.log(`[configure] Adding ${portsToAdd.length} new port(s) to docker-compose.yml`);
 
-          // Find the last port line and its indentation
           const lines = composeContent.split("\n");
-          let lastPortIdx = -1;
-          let portIndent = "      ";
-          for (let i = 0; i < lines.length; i++) {
-            if (/^\s*-\s*['"]?\d+:\d+/.test(lines[i])) {
-              lastPortIdx = i;
-              const indentMatch = lines[i].match(/^(\s*)/);
-              if (indentMatch) portIndent = indentMatch[1];
+          let updatedCompose;
+
+          // Check for empty ports array (ports: [])
+          const emptyPortsIdx = lines.findIndex((l) => /^\s*ports:\s*\[\s*\]\s*$/.test(l));
+          if (emptyPortsIdx >= 0) {
+            const indent = lines[emptyPortsIdx].match(/^(\s*)/)[1];
+            const newPortLines = portsToAdd.map((p) => `${indent}  - ${p}`);
+            lines.splice(emptyPortsIdx, 1, `${indent}ports:`, ...newPortLines);
+            updatedCompose = lines.join("\n");
+          } else {
+            // Find the last existing port line and append after it
+            let lastPortIdx = -1;
+            let portIndent = "      ";
+            for (let i = 0; i < lines.length; i++) {
+              if (/^\s*-\s*['"]?\d+:\d+/.test(lines[i])) {
+                lastPortIdx = i;
+                const indentMatch = lines[i].match(/^(\s*)/);
+                if (indentMatch) portIndent = indentMatch[1];
+              }
+            }
+
+            if (lastPortIdx >= 0) {
+              const newPortLines = portsToAdd.map((p) => `${portIndent}- ${p}`);
+              lines.splice(lastPortIdx + 1, 0, ...newPortLines);
+              updatedCompose = lines.join("\n");
             }
           }
 
-          if (lastPortIdx >= 0) {
-            const newPortLines = portsToAdd.map((p) => `${portIndent}- ${p}`);
-            lines.splice(lastPortIdx + 1, 0, ...newPortLines);
-            const updatedCompose = lines.join("\n");
-
+          if (updatedCompose) {
             console.log(`[configure] Writing updated docker-compose.yml`);
             await sshExec(sshHost, sshUser, `cat > ${streamDir}/docker-compose.yml << 'COMPOSE_EOF'\n${updatedCompose}COMPOSE_EOF`);
           }

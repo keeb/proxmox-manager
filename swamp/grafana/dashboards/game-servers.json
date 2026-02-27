@@ -1,0 +1,481 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Game Events",
+        "target": {
+          "limit": 100,
+          "matchAny": true,
+          "tags": ["game"],
+          "type": "tags"
+        },
+        "type": "dashboard"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "bea14157-8927-407b-8b48-f0cfaa53862d"
+        },
+        "enable": true,
+        "expr": "changes(node_boot_time_seconds{instance=~\"$server\"}[5m]) > 0",
+        "hide": false,
+        "iconColor": "red",
+        "name": "Reboots",
+        "step": "60s",
+        "tagKeys": "instance",
+        "titleFormat": "Reboot: {{instance}}"
+      }
+    ]
+  },
+  "graphTooltip": 2,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Status",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "bea14157-8927-407b-8b48-f0cfaa53862d"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed" },
+          "mappings": [
+            {
+              "options": {
+                "0": { "color": "red", "text": "Down" },
+                "1": { "color": "green", "text": "Running" }
+              },
+              "type": "value"
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 8, "x": 0, "y": 1 },
+      "id": 2,
+      "links": [
+        {
+          "title": "Node Exporter for ${__field.labels.server}",
+          "url": "/d/rYdddlPWk/node-exporter-full?var-node=${__field.labels.server}:9100&${__url_time_range}",
+          "targetBlank": false
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "expr": "game_server_running{server=~\"$server\", game=~\"$game\"}",
+          "legendFormat": "{{server}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Server Status",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "bea14157-8927-407b-8b48-f0cfaa53862d"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 300 },
+              { "color": "red", "value": 600 }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 8, "x": 8, "y": 1 },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "expr": "time() - game_metrics_collected_at{server=~\"$server\", game=~\"$game\"}",
+          "legendFormat": "{{server}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Collection Staleness",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "bea14157-8927-407b-8b48-f0cfaa53862d"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "text", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 16, "y": 1 },
+      "id": 10,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [
+        {
+          "expr": "game_players_online{server=~\"$server\", game=~\"$game\"}",
+          "legendFormat": "{{server}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Current Players",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "bea14157-8927-407b-8b48-f0cfaa53862d"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "super-light-blue" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "text", "value": null }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 20, "y": 1 },
+      "id": 11,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [
+        {
+          "expr": "max_over_time(game_players_online{server=~\"$server\", game=~\"$game\"}[24h])",
+          "legendFormat": "{{server}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Peak Players (24h)",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 6 },
+      "id": 101,
+      "title": "Player Trends",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "bea14157-8927-407b-8b48-f0cfaa53862d"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisSoftMin": 0,
+            "fillOpacity": 15,
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false
+          },
+          "decimals": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 7 },
+      "id": 1,
+      "links": [
+        {
+          "title": "Explore player logs",
+          "url": "/explore?left={\"datasource\":\"i4mQtaH4z\",\"queries\":[{\"expr\":\"{filename=\\\"/var/log/game-players.log\\\"} | json\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+          "targetBlank": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max", "lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "game_players_online{server=~\"$server\", game=~\"$game\"}",
+          "legendFormat": "{{server}} ({{game}})",
+          "refId": "A"
+        }
+      ],
+      "title": "Players Online",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": true,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 },
+      "id": 102,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bea14157-8927-407b-8b48-f0cfaa53862d"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": { "fillOpacity": 10 },
+              "unit": "percentunit",
+              "max": 1,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 0.7 },
+                  { "color": "red", "value": 0.9 }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 8, "x": 0, "y": 18 },
+          "id": 20,
+          "options": {
+            "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            {
+              "expr": "1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\", instance=~\"$server:9100\"}[$__rate_interval]))",
+              "legendFormat": "{{instance}}",
+              "refId": "A"
+            }
+          ],
+          "title": "CPU Usage",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bea14157-8927-407b-8b48-f0cfaa53862d"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": { "fillOpacity": 10 },
+              "unit": "percentunit",
+              "max": 1,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 0.75 },
+                  { "color": "red", "value": 0.9 }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 8, "x": 8, "y": 18 },
+          "id": 21,
+          "options": {
+            "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            {
+              "expr": "1 - (node_memory_MemAvailable_bytes{instance=~\"$server:9100\"} / node_memory_MemTotal_bytes{instance=~\"$server:9100\"})",
+              "legendFormat": "{{instance}}",
+              "refId": "A"
+            }
+          ],
+          "title": "Memory Usage",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bea14157-8927-407b-8b48-f0cfaa53862d"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": { "fillOpacity": 10 },
+              "unit": "percentunit",
+              "max": 1,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 0.75 },
+                  { "color": "red", "value": 0.9 }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 8, "x": 16, "y": 18 },
+          "id": 22,
+          "options": {
+            "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "targets": [
+            {
+              "expr": "1 - (node_filesystem_avail_bytes{instance=~\"$server:9100\", fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{instance=~\"$server:9100\", fstype!~\"tmpfs|overlay\"})",
+              "legendFormat": "{{instance}} {{mountpoint}}",
+              "refId": "A"
+            }
+          ],
+          "title": "Disk Usage",
+          "type": "timeseries"
+        }
+      ],
+      "title": "Server Health",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "id": 103,
+      "panels": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "i4mQtaH4z"
+          },
+          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 19 },
+          "id": 4,
+          "options": {
+            "enableLogDetails": true,
+            "showCommonLabels": false,
+            "showLabels": false,
+            "showTime": true,
+            "sortOrder": "Descending",
+            "wrapLogMessage": true
+          },
+          "targets": [
+            {
+              "expr": "{filename=\"/var/log/game-players.log\"} | json",
+              "queryType": "range",
+              "refId": "A"
+            }
+          ],
+          "title": "Player Activity Log",
+          "type": "logs"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "i4mQtaH4z"
+          },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 29 },
+          "id": 5,
+          "options": {
+            "enableLogDetails": true,
+            "showCommonLabels": false,
+            "showLabels": false,
+            "showTime": true,
+            "sortOrder": "Descending",
+            "wrapLogMessage": true
+          },
+          "targets": [
+            {
+              "expr": "{filename=\"/var/log/game-metrics.log\"} | json",
+              "queryType": "range",
+              "refId": "A"
+            }
+          ],
+          "title": "Workflow Execution Log",
+          "type": "logs"
+        }
+      ],
+      "title": "Logs",
+      "type": "row"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["games"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "bea14157-8927-407b-8b48-f0cfaa53862d"
+        },
+        "definition": "label_values(game_server_running, server)",
+        "includeAll": true,
+        "multi": true,
+        "name": "server",
+        "query": { "qryType": 1, "query": "label_values(game_server_running, server)" },
+        "refresh": 2,
+        "type": "query"
+      },
+      {
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "bea14157-8927-407b-8b48-f0cfaa53862d"
+        },
+        "definition": "label_values(game_server_running{server=~\"$server\"}, game)",
+        "includeAll": true,
+        "multi": true,
+        "name": "game",
+        "query": { "qryType": 1, "query": "label_values(game_server_running{server=~\"$server\"}, game)" },
+        "refresh": 2,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "Game Servers",
+  "uid": "game-servers"
+}

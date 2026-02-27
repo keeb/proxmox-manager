@@ -11,7 +11,7 @@ globalArguments:
 methods:
   syncCode:
     arguments:
-      excludes: '["node_modules/", ".git/", "bot/swamp"]'
+      excludes: '["node_modules/", ".git/", "bot/"]'
   syncBinary:
     arguments:
       remotePath: bot/swamp

@@ -1,0 +1,34 @@
+{
+  "title": "Container Restart Storm",
+  "ruleGroup": "containers",
+  "folderUID": "afdny0umjbytcb",
+  "condition": "C",
+  "for": "0s",
+  "noDataState": "OK",
+  "execErrState": "Error",
+  "labels": { "severity": "warning" },
+  "annotations": { "summary": "Container {{ $labels.name }} has restarted >3 times in the last hour" },
+  "data": [
+    {
+      "refId": "A",
+      "relativeTimeRange": { "from": 3600, "to": 0 },
+      "datasourceUid": "bea14157-8927-407b-8b48-f0cfaa53862d",
+      "model": {
+        "expr": "increase(container_restart_count[1h])",
+        "refId": "A"
+      }
+    },
+    {
+      "refId": "B",
+      "relativeTimeRange": { "from": 3600, "to": 0 },
+      "datasourceUid": "__expr__",
+      "model": { "type": "reduce", "expression": "A", "reducer": "last", "refId": "B" }
+    },
+    {
+      "refId": "C",
+      "relativeTimeRange": { "from": 3600, "to": 0 },
+      "datasourceUid": "__expr__",
+      "model": { "type": "threshold", "expression": "B", "conditions": [{ "evaluator": { "type": "gt", "params": [3] } }], "refId": "C" }
+    }
+  ]
+}

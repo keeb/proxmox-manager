@@ -27,11 +27,26 @@ jobs:
               type: succeeded
         weight: 0
       - name: sync-code
-        description: Rsync repo to remote host
+        description: Rsync swamp repo to remote host
         task:
           type: model_method
           modelIdOrName: swampRepo
           methodName: syncCode
+        dependsOn:
+          - step: lookup-slate
+            condition:
+              type: succeeded
+        weight: 0
+      - name: sync-bot
+        description: Rsync bot directory to remote host
+        task:
+          type: model_method
+          modelIdOrName: swampRepo
+          methodName: syncCode
+          inputs:
+            localDir: ../bot
+            remoteSubdir: bot
+            excludes: '["swamp", "node_modules/"]'
         dependsOn:
           - step: lookup-slate
             condition:
@@ -59,6 +74,17 @@ jobs:
             condition:
               type: succeeded
         weight: 0
+      - name: sync-auth
+        description: Copy swamp auth config to remote
+        task:
+          type: model_method
+          modelIdOrName: swampRepo
+          methodName: syncAuth
+        dependsOn:
+          - step: lookup-slate
+            condition:
+              type: succeeded
+        weight: 0
       - name: build-image
         description: Build Docker image on slate
         task:
@@ -67,6 +93,9 @@ jobs:
           methodName: build
         dependsOn:
           - step: sync-code
+            condition:
+              type: succeeded
+          - step: sync-bot
             condition:
               type: succeeded
           - step: sync-binary
@@ -81,7 +110,7 @@ jobs:
           methodName: exec
           inputs:
             vmName: slate
-            command: 'printf "DISCORD_TOKEN=${{ vault.get("proxmox-vault", "discord-token") }}\nREQUIRED_ROLE=homie\nCOMMAND_PREFIX=!\n" > /opt/proxmox-manager/bot/.env'
+            command: 'printf "DISCORD_TOKEN=${{ vault.get("proxmox-vault", "discord-token") }}\nREQUIRED_ROLE=homie\nCOMMAND_PREFIX=!\nSWAMP_REPO_DIR=/opt/proxmox-manager\n" > /opt/proxmox-manager/bot/.env'
         dependsOn:
           - step: sync-code
             condition:
@@ -98,6 +127,20 @@ jobs:
             condition:
               type: succeeded
           - step: write-env
+            condition:
+              type: succeeded
+        weight: 0
+      - name: annotate
+        description: Create Grafana annotation
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: createAnnotation
+          inputs:
+            tags: '["deploy", "bot"]'
+            text: 'Bot deployed to slate'
+        dependsOn:
+          - step: start-bot
             condition:
               type: succeeded
         weight: 0

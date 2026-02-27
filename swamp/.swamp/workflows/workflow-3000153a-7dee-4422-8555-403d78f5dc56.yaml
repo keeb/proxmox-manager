@@ -1,0 +1,66 @@
+id: 3000153a-7dee-4422-8555-403d78f5dc56
+name: deploy-dashboards
+description: Push all 5 Grafana dashboards from repo to Grafana
+jobs:
+  - name: main
+    description: Push all dashboards in parallel
+    steps:
+      - name: push-caddy
+        description: Push Caddy Access Logs dashboard
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: pushDashboard
+          inputs:
+            dashboardFile: grafana/dashboards/caddy-access-logs.json
+        dependsOn: []
+        weight: 0
+      - name: push-game-servers
+        description: Push Game Servers dashboard
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: pushDashboard
+          inputs:
+            dashboardFile: grafana/dashboards/game-servers.json
+        dependsOn: []
+        weight: 0
+      - name: push-media-library
+        description: Push Media Library dashboard
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: pushDashboard
+          inputs:
+            dashboardFile: grafana/dashboards/media-library.json
+        dependsOn: []
+        weight: 0
+      - name: push-cadvisor
+        description: Push cAdvisor dashboard
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: pushDashboard
+          inputs:
+            dashboardFile: grafana/dashboards/cadvisor.json
+        dependsOn:
+          - step: push-game-servers
+            condition:
+              type: succeeded
+        weight: 0
+      - name: push-node-exporter
+        description: Push Node Exporter Full dashboard
+        task:
+          type: model_method
+          modelIdOrName: grafanaHub
+          methodName: pushDashboard
+          inputs:
+            dashboardFile: grafana/dashboards/node-exporter-full.json
+        dependsOn:
+          - step: push-media-library
+            condition:
+              type: succeeded
+        weight: 0
+    dependsOn: []
+    weight: 0
+version: 1
