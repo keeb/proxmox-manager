@@ -23,6 +23,8 @@ swamp/resources/
 
 # Pulled extensions (managed by swamp extension pull, updated from upstream)
 swamp/extensions/workflows/
+swamp/extensions/models/
+!swamp/extensions/models/swamp_repo.ts
 swamp/.swamp/bundles/
 
 # Claude Code (local settings, skills, tool config)

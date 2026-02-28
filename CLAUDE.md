@@ -35,82 +35,106 @@ Three interrelated projects managed with [swamp](https://github.com/systeminit/s
 
 Run any workflow: `swamp workflow run <name>` (default log output is preferred — compact and readable). Use `--json` only when piping into scripts or the bot.
 
+37 total workflows: 16 are local (tracked in git), 21 come from `@keeb/*` extensions (pulled, gitignored).
+
 ### Production (used by Discord bot)
 
-| Workflow | What it does |
-|----------|-------------|
-| `start-minecraft` | Start a Minecraft VM + server (`--input vmName=X tmuxSession=Y serverDir=Z startScript=S logPath=L`) |
-| `stop-minecraft` | Stop a Minecraft server + VM (same inputs) |
-| `reboot-minecraft` | Stop + start a Minecraft server (same inputs) |
-| `status-minecraft` | Query Minecraft player count (same inputs) |
-| `start-calamity` | Start the Terraria server (Docker Compose) |
-| `stop-calamity` | Stop the Terraria server |
-| `reboot-calamity` | Stop + start calamity |
-| `status-calamity` | Query calamity player count |
-| `update-calamity` | Pull images + restart Terraria |
-| `deploy-bot` | Deploy the Discord bot to the slate VM |
+| Workflow | Source | What it does |
+|----------|--------|-------------|
+| `start-minecraft` | pulled | Start a Minecraft VM + server (`--input vmName=X tmuxSession=Y serverDir=Z startScript=S logPath=L`) |
+| `stop-minecraft` | pulled | Stop a Minecraft server + VM (same inputs) |
+| `reboot-minecraft` | pulled | Stop + start a Minecraft server (same inputs) |
+| `status-minecraft` | pulled | Query Minecraft player count (same inputs) |
+| `start-calamity` | local | Start the Terraria server (Docker Compose) |
+| `stop-calamity` | local | Stop the Terraria server |
+| `reboot-calamity` | local | Stop + start calamity |
+| `status-calamity` | local | Query calamity player count |
+| `update-calamity` | local | Pull images + restart Terraria |
+| `deploy-bot` | local | Deploy the Discord bot to the slate VM |
 
 ### Infrastructure
 
-| Workflow | What it does |
-|----------|-------------|
-| `sync-fleet` | Auth + sync all VMs into fleet (named resources) |
-| `start-vm` | Start any VM by name (`--input vmName=X`) |
-| `stop-vm` | Stop any VM by name (`--input vmName=X`) |
-| `create-vm` | Create a new VM by name (`--input vmName=X`) |
-| `delete-vm` | Delete a VM by name (`--input vmName=X`) |
-| `create-stateful-vm` | Full provisioning: create VM, PXE boot, install Alpine to disk, reboot from disk |
-| `setup-docker` | Install Docker Engine on a running VM by name |
-| `setup-tailscale` | Install Tailscale and authenticate on a running VM by name |
-| `destroy-slate` | Stop and delete the slate VM |
-| `start-gold-image` | Start the gold-image VM |
-| `deploy-apkovl` | Package gold-image overlay and deploy to TFTP server |
-| `init-proxy` | Initialize nginx stream proxy directory on treehouse |
-| `configure-proxy` | Configure nginx stream proxy on treehouse for a backend service |
-| `collect-game-metrics` | Collect player metrics from all game servers — allthemons, calamity, infinity (runs on slate via cron every 2 min) |
-| `setup-game-metrics` | One-time: enable textfile collector on a game server VM (`--input vmName=X`) |
-| `minecraft-install` | Install a Minecraft server pack on a VM (`--input vmName=X`) |
-| `setup-monitoring` | Install monitoring agent on a VM (`--input vmName=X`) |
-| `configure-monitoring` | Configure monitoring agent + register with Prometheus hub (`--input vmName=X`) |
-| `sync-tailnet` | Sync Tailscale machine inventory |
-| `deploy-dashboards` | Push all 5 Grafana dashboard JSONs to Grafana |
-| `deploy-alerts` | Configure Discord contact point + notification policy + push all alert rules |
-| `deploy-grafana` | Full Grafana deploy: dashboards then alerting |
+| Workflow | Source | What it does |
+|----------|--------|-------------|
+| `sync-fleet` | pulled | Auth + sync all VMs into fleet (named resources) |
+| `start-vm` | pulled | Start any VM by name (`--input vmName=X`) |
+| `stop-vm` | pulled | Stop any VM by name (`--input vmName=X`) |
+| `create-vm` | pulled | Create a new VM by name (`--input vmName=X`) |
+| `delete-vm` | pulled | Delete a VM by name (`--input vmName=X`) |
+| `create-stateful-vm` | pulled | Full provisioning: create VM, PXE boot, install Alpine to disk, reboot from disk |
+| `setup-docker` | pulled | Install Docker Engine on a running VM by name |
+| `setup-tailscale` | pulled | Install Tailscale and authenticate on a running VM by name |
+| `destroy-slate` | local | Stop and delete the slate VM |
+| `start-gold-image` | local | Start the gold-image VM |
+| `deploy-apkovl` | pulled | Package gold-image overlay and deploy to TFTP server |
+| `init-proxy` | local | Initialize nginx stream proxy directory on treehouse |
+| `configure-proxy` | pulled | Configure nginx stream proxy on treehouse for a backend service |
+| `collect-game-metrics` | pulled | Collect player metrics from all game servers (runs on slate via cron every 2 min) |
+| `setup-game-metrics` | pulled | One-time: enable textfile collector on a game server VM (`--input vmName=X`) |
+| `minecraft-install` | pulled | Install a Minecraft server pack on a VM (`--input vmName=X`) |
+| `install-monitoring` | local | Install monitoring agents (node-exporter + promtail) on a VM (`--input vmName=X`) |
+| `setup-monitoring` | pulled | Full monitoring setup: install agents + configure wiring + register with Prometheus (`--input vmName=X`) |
+| `configure-monitoring` | pulled | Configure monitoring wiring (promtail, Prometheus target registration) (`--input vmName=X`) |
+| `sync-tailnet` | local | Sync Tailscale machine inventory |
+| `fleet-report` | local | Sync fleet, collect game server telemetry, and generate snapshot data for reporting |
+| `setup-fleet-report` | local | Install fleet-report cron job on slate |
+| `deploy-dashboards` | local | Push all 5 Grafana dashboard JSONs to Grafana |
+| `deploy-alerts` | local | Configure Discord contact point + notification policy + push all alert rules |
+| `deploy-grafana` | local | Full Grafana deploy: dashboards then alerting |
 
 ### Testing
 
-| Workflow | What it does |
-|----------|-------------|
-| `vm-lifecycle-test` | Full create/start/stop/delete cycle via fleet |
-| `guest-agent-test` | Create, start, validate IP via guest agent, cleanup |
+| Workflow | Source | What it does |
+|----------|--------|-------------|
+| `vm-lifecycle-test` | pulled | Full create/start/stop/delete cycle via fleet |
+| `guest-agent-test` | pulled | Create, start, validate IP via guest agent, cleanup |
 
 ## Extension Models
 
-Source code in `extensions/models/`. Shared helpers in `lib/`:
+15 models come from 10 published `@keeb/*` extensions (pulled via `swamp extension pull`). 1 model is local.
+
+Shared helpers in `swamp/extensions/models/lib/`:
 - `lib/proxmox.ts` — Proxmox API helpers (`fetchWithCurl`, `waitForTask`, `resolveAuth`, `getVmIpWithRetry`, `is401`)
 - `lib/ssh.ts` — SSH helpers (`sshExec`, `sshExecRaw`, `waitForSsh`)
 - `lib/metrics.ts` — Game server metrics helpers (`formatPromMetrics`, `formatLogLine`, `writeMetricsFiles`)
 - `lib/grafana.ts` — Grafana API helpers (`grafanaApiGet`, `grafanaApiPost`, `grafanaApiPut`, `grafanaApiDelete`, `grafanaApiPostFile`)
 
-| Type | File | Purpose |
-|------|------|---------|
-| `proxmox/node` | `proxmox_node.ts` | Auth root. Methods: `auth` |
-| `proxmox/vm` | `proxmox_vm.ts` | Fleet VM lifecycle. Methods: `lookup`, `create`, `start`, `stop`, `delete`, `setBootOrder`, `setConfig`, `sync` |
-| `swamp/repo` | `swamp_repo.ts` | Deploy swamp repo to remote host. Methods: `syncCode`, `syncBinary`, `syncSecrets` |
-| `ssh/host` | `ssh_host.ts` | General-purpose SSH operations. Methods: `exec`, `upload`, `waitForConnection` |
-| `docker/compose` | `docker_compose.ts` | Docker Compose over SSH. Methods: `start`, `stop`, `update`, `status` |
-| `alpine/install` | `alpine_install.ts` | Alpine disk install via setup-alpine + chroot post-install. Method: `install` |
-| `alpine/overlay` | `alpine_overlay.ts` | Alpine overlay packaging. Method: `deployApkovl` |
-| `docker/engine` | `docker_engine.ts` | Docker Engine lifecycle over SSH. Methods: `install`, `build`, `run`, `stop`, `inspect`, `exec` |
-| `tailscale/node` | `tailscale_node.ts` | Tailscale install + auth over SSH. Method: `install` |
-| `tailscale/net` | `tailscale_net.ts` | Tailnet machine inventory. Methods: `sync`, `discover` |
-| `minecraft/server` | `minecraft_server.ts` | Minecraft server control. Methods: `warnShutdown`, `startMinecraftServer`, `stopMinecraftServer`, `status`, `say`, `op`, `deop`, `collectMetrics` |
-| `minecraft/installer` | `minecraft_installer.ts` | Minecraft server pack installation. Methods: `installDeps`, `upload`, `extract`, `configure` |
-| `terraria/server` | `terraria_server.ts` | Terraria server control via Docker tmux. Methods: `warnShutdown`, `status`, `collectMetrics` |
-| `monitoring/agent` | `monitoring_agent.ts` | Monitoring agent install + config over SSH. Methods: `install`, `configure`, `enableTextfileCollector` |
-| `monitoring/hub` | `monitoring_hub.ts` | Prometheus target registration. Methods: `discover`, `register` |
-| `nginx/stream` | `nginx_stream.ts` | Nginx stream proxy config over SSH. Methods: `init`, `configure` |
-| `grafana/instance` | `grafana_instance.ts` | Grafana dashboard and alert management via API. Methods: `discover`, `pushDashboard`, `exportDashboard`, `configureContactPoint`, `configureNotificationPolicy`, `pushAlertRule`, `createAnnotation` |
+### Published extensions
+
+| Extension | Types |
+|-----------|-------|
+| `@keeb/proxmox` | `proxmox/node`, `proxmox/vm` |
+| `@keeb/ssh` | `ssh/host` |
+| `@keeb/docker` | `docker/compose`, `docker/engine` |
+| `@keeb/alpine` | `alpine/install`, `alpine/overlay` |
+| `@keeb/tailscale` | `tailscale/node`, `tailscale/net` |
+| `@keeb/minecraft` | `minecraft/server`, `minecraft/installer` |
+| `@keeb/terraria` | `terraria/server` |
+| `@keeb/nginx` | `nginx/stream` |
+| `@keeb/prometheus` | `monitoring/agent`, `monitoring/hub` |
+| `@keeb/grafana` | `grafana/instance` |
+
+### Model types
+
+| Type | Extension | Purpose |
+|------|-----------|---------|
+| `proxmox/node` | `@keeb/proxmox` | Auth root. Methods: `auth` |
+| `proxmox/vm` | `@keeb/proxmox` | Fleet VM lifecycle. Methods: `lookup`, `create`, `start`, `stop`, `delete`, `setBootOrder`, `setConfig`, `sync` |
+| `ssh/host` | `@keeb/ssh` | General-purpose SSH operations. Methods: `exec`, `upload`, `waitForConnection` |
+| `docker/compose` | `@keeb/docker` | Docker Compose over SSH. Methods: `start`, `stop`, `update`, `status` |
+| `docker/engine` | `@keeb/docker` | Docker Engine lifecycle over SSH. Methods: `install`, `build`, `run`, `stop`, `inspect`, `exec` |
+| `alpine/install` | `@keeb/alpine` | Alpine disk install via setup-alpine + chroot post-install. Method: `install` |
+| `alpine/overlay` | `@keeb/alpine` | Alpine overlay packaging. Method: `deployApkovl` |
+| `tailscale/node` | `@keeb/tailscale` | Tailscale install + auth over SSH. Method: `install` |
+| `tailscale/net` | `@keeb/tailscale` | Tailnet machine inventory. Methods: `sync`, `discover` |
+| `minecraft/server` | `@keeb/minecraft` | Minecraft server control. Methods: `warnShutdown`, `startMinecraftServer`, `stopMinecraftServer`, `status`, `say`, `op`, `deop`, `collectMetrics` |
+| `minecraft/installer` | `@keeb/minecraft` | Minecraft server pack installation. Methods: `installDeps`, `upload`, `extract`, `configure` |
+| `terraria/server` | `@keeb/terraria` | Terraria server control via Docker tmux. Methods: `warnShutdown`, `status`, `collectMetrics` |
+| `monitoring/agent` | `@keeb/prometheus` | Monitoring agent install + config over SSH. Methods: `install`, `configure`, `enableTextfileCollector` |
+| `monitoring/hub` | `@keeb/prometheus` | Prometheus target registration. Methods: `discover`, `register` |
+| `nginx/stream` | `@keeb/nginx` | Nginx stream proxy config over SSH. Methods: `init`, `configure` |
+| `grafana/instance` | `@keeb/grafana` | Grafana dashboard and alert management via API. Methods: `discover`, `pushDashboard`, `exportDashboard`, `configureContactPoint`, `configureNotificationPolicy`, `pushAlertRule`, `createAnnotation` |
+| `swamp/repo` | *(local)* | Deploy swamp repo to remote host. Methods: `syncCode`, `syncBinary`, `syncSecrets` |
 
 ### Auth pattern
 
