@@ -21,10 +21,12 @@ swamp/workflows/
 swamp/vaults/
 swamp/resources/
 
-# Pulled extensions (managed by swamp extension pull, updated from upstream)
-swamp/extensions/workflows/
-swamp/extensions/models/
-!swamp/extensions/models/swamp_repo.ts
+# Generic extensions are NOT vendored here. The @keeb/* generics load from
+# local sources (~/git/swamp-extensions/*) wired in swamp/.swamp-sources.yaml;
+# @john/* and the datastore come from registry pulls. Keep all of that out of
+# the repo — only this project's own models are tracked (in swamp/local-models/).
+swamp/extensions/
+swamp/.swamp/pulled-extensions/
 swamp/.swamp/bundles/
 
 # Claude Code (local settings, skills, tool config)

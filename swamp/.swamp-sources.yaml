@@ -1,0 +1,15 @@
+sources:
+  - path: /home/keeb/git/mongodb-swamp-datastore
+    only:
+      - datastores
+  - path: /home/keeb/git/swamp-extensions/proxmox
+  - path: /home/keeb/git/swamp-extensions/ssh
+  - path: /home/keeb/git/swamp-extensions/docker
+  - path: /home/keeb/git/swamp-extensions/alpine
+  - path: /home/keeb/git/swamp-extensions/tailscale
+  - path: /home/keeb/git/swamp-extensions/minecraft
+  - path: /home/keeb/git/swamp-extensions/terraria
+  - path: /home/keeb/git/swamp-extensions/nginx
+  - path: /home/keeb/git/swamp-extensions/prometheus
+  - path: /home/keeb/git/swamp-extensions/grafana
+  - path: /home/keeb/git/proxmox-manager/swamp/local-models

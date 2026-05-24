@@ -8,7 +8,7 @@ We manually set up a Project Infinity server on the infinity VM (install package
 
 ### 1. New extension model: `minecraft/installer` (`minecraft_installer.ts`)
 
-**Type:** `@user/minecraft/installer`
+**Type:** `@keeb/minecraft/installer`
 
 **globalArguments:** `sshHost`, `sshUser` (wired from fleet via CEL)
 
@@ -65,7 +65,7 @@ Version bump: `"2026.02.16.1"`
 
 ```yaml
 name: minecraftInstaller
-type: '@user/minecraft/installer'
+type: '@keeb/minecraft/installer'
 globalArguments:
   sshHost: '${{ model.fleet.resource.vm[inputs.vmName].attributes.ip }}'
   sshUser: root
@@ -95,7 +95,7 @@ Generic minecraft/server instance that reads all config from installer data:
 
 ```yaml
 name: minecraftGame
-type: '@user/minecraft/server'
+type: '@keeb/minecraft/server'
 globalArguments:
   sshHost: '${{ model.fleet.resource.vm[inputs.vmName].attributes.ip }}'
   sshUser: root
@@ -175,7 +175,7 @@ minecraftGame.start → resource.server["infinity"].attributes.serverReady = tru
 
 ## Files to modify
 - `swamp/extensions/models/minecraft_server.ts` (generalize hardcoded paths)
-- `swamp/.swamp/definitions/@user/minecraft/server/d6879760-e416-4101-92e9-f349187b3db2.yaml` (add new globalArgs to allthemonsMinecraft)
+- `swamp/.swamp/definitions/@keeb/minecraft/server/d6879760-e416-4101-92e9-f349187b3db2.yaml` (add new globalArgs to allthemonsMinecraft)
 
 ## Definitions/workflows to create via CLI
 - `swamp model create minecraftInstaller` (minecraft/installer definition)

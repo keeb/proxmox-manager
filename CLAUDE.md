@@ -35,7 +35,7 @@ Three interrelated projects managed with [swamp](https://github.com/systeminit/s
 
 Run any workflow: `swamp workflow run <name>` (default log output is preferred — compact and readable). Use `--json` only when piping into scripts or the bot.
 
-37 total workflows: 16 are local (tracked in git), 21 come from `@keeb/*` extensions (pulled, gitignored).
+42 total workflows: 21 are local (tracked in git), 21 come from `@keeb/*` extensions sourced from `~/git/swamp-extensions/*` (wired in `swamp/.swamp-sources.yaml`, gitignored).
 
 ### Production (used by Discord bot)
 
@@ -82,6 +82,16 @@ Run any workflow: `swamp workflow run <name>` (default log output is preferred �
 | `deploy-alerts` | local | Configure Discord contact point + notification policy + push all alert rules |
 | `deploy-grafana` | local | Full Grafana deploy: dashboards then alerting |
 
+### Modpack updates (infinity)
+
+| Workflow | Source | What it does |
+|----------|--------|-------------|
+| `check-infinity-update` | local | Scrape CurseForge for the latest Project Infinity server pack; writes `projectInfinityModpack/project-infinity-0-1` resource with `latestFileId`/`latestFileName` |
+| `download-infinity-modpack` | local | discoverLatest + download the latest server-pack zip to `/tmp/curseforge-downloads/` (idempotent — skips if file already on disk with the expected size) |
+| `deploy-infinity-modpack` | local | Full pipeline: discover → download → install (unzip into `~/game-<fileId>/`) → stop server → fork world+admin state from active install → swap `~/game` symlink → start server → annotate Grafana |
+| `rollback-infinity-modpack` | local | Stop server, point `~/game` at a previously-installed `game-<fileId>`, restart. Takes `--input fileId=...` |
+| `list-infinity-modpacks` | local | List all `game-*` installs on the infinity VM, marking which is active. Read with `swamp data get infinityServerPack snapshot` |
+
 ### Testing
 
 | Workflow | Source | What it does |
@@ -91,13 +101,19 @@ Run any workflow: `swamp workflow run <name>` (default log output is preferred �
 
 ## Extension Models
 
-15 models come from 10 published `@keeb/*` extensions (pulled via `swamp extension pull`). 1 model is local.
+16 generic model types come from 10 `@keeb/*` extensions loaded as local sources from `~/git/swamp-extensions/*` (wired in `swamp/.swamp-sources.yaml`). 3 project-specific models — `@keeb/swamp/repo`, `@keeb/curseforge/modpack`, `@keeb/minecraft/serverpack` — live here in the local-only `@keeb/proxmox-manager` extension (`swamp/local-models/`, tracked in git, not published).
 
 Shared helpers in `swamp/extensions/models/lib/`:
 - `lib/proxmox.ts` — Proxmox API helpers (`fetchWithCurl`, `waitForTask`, `resolveAuth`, `getVmIpWithRetry`, `is401`)
 - `lib/ssh.ts` — SSH helpers (`sshExec`, `sshExecRaw`, `waitForSsh`)
 - `lib/metrics.ts` — Game server metrics helpers (`formatPromMetrics`, `formatLogLine`, `writeMetricsFiles`)
 - `lib/grafana.ts` — Grafana API helpers (`grafanaApiGet`, `grafanaApiPost`, `grafanaApiPut`, `grafanaApiDelete`, `grafanaApiPostFile`)
+
+Modpack scraping uses a persistent Chromium profile via Playwright:
+- `swamp/scripts/curseforge-scraper.js` — Node script that drives `chromium.launchPersistentContext(userDataDir, ...)`. The userDataDir survives Cloudflare clearance cookies between runs.
+- Profile path lives in the vault: `vault.get("proxmox-vault", "chrome-profile-path")` (default `~/.config/swamp-chrome`).
+- First run may hit a Cloudflare interstitial. If automated solve doesn't clear in 30s, run `node swamp/scripts/curseforge-scraper.js warmup '{"slug":"<slug>","userDataDir":"<path>","headless":false}'` once with a display to solve manually.
+- Scraper talks to CurseForge's internal API (`/api/v1/mods/<projectId>/files`, `/files/<id>/additional-files`) once the page context is warmed — no DOM scraping needed. Server packs are linked to main files via `parentProjectFileId`.
 
 ### Published extensions
 
@@ -135,6 +151,8 @@ Shared helpers in `swamp/extensions/models/lib/`:
 | `nginx/stream` | `@keeb/nginx` | Nginx stream proxy config over SSH. Methods: `init`, `configure` |
 | `grafana/instance` | `@keeb/grafana` | Grafana dashboard and alert management via API. Methods: `discover`, `pushDashboard`, `exportDashboard`, `configureContactPoint`, `configureNotificationPolicy`, `pushAlertRule`, `createAnnotation` |
 | `swamp/repo` | *(local)* | Deploy swamp repo to remote host. Methods: `syncCode`, `syncBinary`, `syncSecrets` |
+| `curseforge/modpack` | *(local)* | Scrape CurseForge modpack pages via Playwright + internal API; track latest server-pack file. Methods: `discoverLatest`, `listServerPacks`, `download`. Resources: `project` (per slug, holds `latestFileId`/`latestLocalPath` pointer), `file` (per fileId, holds download metadata + localPath). |
+| `minecraft/serverpack` | *(local)* | Manages versioned server-pack installs on a Minecraft VM with COW layout (`~/game` → `~/game-<fileId>` symlink). Methods: `install` (upload+unzip), `forkState` (cp world+admin state from active install), `activate` (atomic symlink swap; bootstraps if `~/game` is still a real dir), `currentActive`, `listInstalled`, `removeInstallation`. Methods auto-resolve fileId/localPath from the curseforge project resource when args are empty, so workflows don't need CEL chaining. |
 
 ### Auth pattern
 
@@ -203,6 +221,44 @@ Tag conventions: `["deploy", "<target>"]` for deploys, `["game", "<action>", "<s
 - **hancockMonitoring** (`monitoring/hub`) — Prometheus target registration on hancock (10.0.0.12)
 - **streamProxy** (`nginx/stream`) — nginx stream proxy on treehouse (vmName/targetIp/portMap via workflow inputs)
 - **grafanaHub** (`grafana/instance`) — Grafana dashboard/alert management on hancock (10.0.0.12)
+- **projectInfinityModpack** (`curseforge/modpack`) — CurseForge slug `project-infinity-0-1`, Chrome profile path from vault
+- **infinityServerPack** (`minecraft/serverpack`) — versioned server-pack installs on infinity VM, COW layout under `/root/game-*` with `~/game` as the active symlink
+
+## Modpack Updates (infinity)
+
+Project Infinity ships server packs as separate "additional files" on CurseForge — each main modpack file has a sibling `Serverfiles_*.zip`. The `curseforge/modpack` model resolves the latest server pack via CurseForge's internal API (driven through a Playwright-warmed Chromium context to clear Cloudflare). The `minecraft/serverpack` model lays out versioned installs on the VM:
+
+```
+~/game            -> game-<fileId>          (active install — symlink)
+~/game-<oldId>/   (previous version, untouched, retained for rollback)
+~/game-<newId>/   (current version)
+  ├── mods/, config/, libraries/, server.jar, start.sh    (from server pack zip)
+  ├── world/                                              (forked from active install at deploy time)
+  ├── server.properties, ops.json, whitelist.json, ...    (forked from active install)
+  └── variables.txt                                       (new pack's defaults + JAVA_ARGS/SKIP_JAVA_CHECK patched from old)
+```
+
+**Copy-on-write world semantics**: each install owns its own world. Deploy copies (`cp -a`) the active install's world into the new install, then atomically swaps the symlink (`ln -sfn`). Rollback re-points the symlink — the old install's world is pristine because the new install played on its own copy.
+
+**Pre-existing installs**: on first deploy, if `~/game` is still a real directory (not a symlink), `activate` renames it to `~/game-preexisting/` before installing the symlink. This bootstraps the COW layout without requiring manual prep.
+
+**Idempotency**:
+- `curseforge/modpack.download` checks for an existing local file matching `fileSize` and skips the Playwright round-trip if found (the server pack is 600+ MB).
+- `minecraft/serverpack.install` skips the upload+unzip if `<serverParent>/game-<fileId>/start.sh` already exists.
+
+**Java/Alpine gotcha**: ServerPackCreator's start.sh tries to auto-install Java via Jabba, which requires glibc and fails on Alpine/musl. `forkState` patches the new `variables.txt` to set `SKIP_JAVA_CHECK=true` and `WAIT_FOR_USER_INPUT=false`, and carries forward `JAVA_ARGS`/`ADDITIONAL_ARGS`/`JAVA`/`RESTART` from the previous install.
+
+**Inter-step coordination**: swamp's `data.latest()` in workflow CEL is a snapshot from workflow start, so an earlier step's writes aren't visible to later steps' input CEL. To work around this, the `install`/`forkState`/`activate` methods auto-resolve `fileId` (and `install` also resolves `localPath`) by shelling out to `swamp data get projectInfinityModpack project-infinity-0-1 --json` inside the method body. Workflows pass no inputs to these steps — each method reads the latest pointer itself.
+
+**Common operations:**
+```bash
+swamp workflow run check-infinity-update         # what's the latest fileId?
+swamp data get projectInfinityModpack project-infinity-0-1   # see the pointer
+swamp workflow run deploy-infinity-modpack       # full upgrade pipeline
+swamp workflow run list-infinity-modpacks        # what installs are on disk?
+swamp data get infinityServerPack snapshot       # ...as JSON
+swamp workflow run rollback-infinity-modpack --input fileId=preexisting   # swap back
+```
 
 ## Discord Bot
 
@@ -213,7 +269,7 @@ Deno app in `bot/`. Runs swamp workflows via chat commands in `#clankers` (requi
 !op <vm> <player>    !deop <vm> <player>    !list    !help
 ```
 
-Game server VMs are auto-discovered at startup from swamp model definitions (types `@user/minecraft/server` and `@user/terraria/server`). The `serverName` globalArgument in each definition determines the VM name. Supported actions are type-inherent (minecraft: start/stop/reboot/status/op/deop; terraria: start/stop/reboot/update/status).
+Game server VMs are auto-discovered at startup from swamp model definitions (types `@keeb/minecraft/server` and `@keeb/terraria/server`). The `serverName` globalArgument in each definition determines the VM name. Supported actions are type-inherent (minecraft: start/stop/reboot/status/op/deop; terraria: start/stop/reboot/update/status).
 
 For minecraft servers, the bot calls generic workflows (`start-minecraft`, `stop-minecraft`, etc.) passing `vmName` and server config (tmuxSession, serverDir, startScript, logPath) extracted from the model definition's globalArguments. For terraria servers, the bot calls per-server workflows (`start-calamity`, etc.).
 

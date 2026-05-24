@@ -52,7 +52,7 @@ proxmox_node.ts :: auth(definition, context)
 ### Output
 
 ```
-.swamp/data/@user/proxmox/node/<keebDev02-id>/node/5/raw
+.swamp/data/@keeb/proxmox/node/<keebDev02-id>/node/5/raw
 
 {
   "ticket":    "PVE:root@pam:6819A3C2::...",
@@ -104,7 +104,7 @@ proxmox_vm.ts :: sync(definition, context)
 ### Outputs (10 named resources)
 
 ```
-.swamp/data/@user/proxmox/vm/<fleet-id>/
+.swamp/data/@keeb/proxmox/vm/<fleet-id>/
 ├── allthemons/2/raw    {"vmid":108, "status":"running",  "ip":"10.0.0.96"}
 ├── atm10/2/raw         {"vmid":101, "status":"stopped",  "ip":null}
 ├── calamity/2/raw      {"vmid":107, "status":"running",  "ip":"10.0.0.208"}

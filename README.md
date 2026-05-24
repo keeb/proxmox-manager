@@ -148,7 +148,7 @@ Deno app in `bot/`. Runs in the `#clankers` channel and requires the `homie` rol
 !op <vm> <player>    !deop <vm> <player>    !list    !help
 ```
 
-Game servers are auto-discovered at startup from swamp model definitions (types `@user/minecraft/server` and `@user/terraria/server`). Currently manages: `allthemons` (Minecraft), `infinity` (Minecraft), `calamity` (Terraria).
+Game servers are auto-discovered at startup from swamp model definitions (types `@keeb/minecraft/server` and `@keeb/terraria/server`). Currently manages: `allthemons` (Minecraft), `infinity` (Minecraft), `calamity` (Terraria).
 
 ## PXE infrastructure
 

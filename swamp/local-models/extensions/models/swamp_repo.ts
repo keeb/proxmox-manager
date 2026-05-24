@@ -22,10 +22,25 @@ const SWAMP_EXCLUDES = [
   ".swamp/logs/",
   ".swamp/definitions-evaluated/",
   ".swamp/workflows-evaluated/",
+  // Host-local state — clobbering slate's copy with the local one rewires its
+  // catalog to /home/keeb/... paths and/or wipes pulled extensions (slate's
+  // extension set may differ from local — e.g. @keeb/mongodb-datastore).
+  ".swamp/_extension_catalog.db*",
+  ".swamp/pulled-extensions/",
+  ".swamp/audit/",
+  ".swamp/bundles/",
+  ".swamp/datastore/",
+  ".swamp/datastore-bundles/",
+  ".swamp/driver-bundles/",
+  ".swamp/report-bundles/",
+  ".swamp/vault-bundles/",
+  ".swamp/files/",
+  ".swamp/inputs-evaluated/",
+  ".swamp/telemetry/",
 ];
 
 export const model = {
-  type: "@user/swamp/repo",
+  type: "@keeb/swamp/repo",
   version: "2026.02.11.1",
   resources: {
     "repo": {
@@ -98,8 +113,9 @@ export const model = {
     syncBinary: {
       description: "Copy swamp binary to remote host",
       arguments: z.object({
-        binaryName: z.string().default("swamp").describe("Name of the binary to find via which"),
+        binaryName: z.string().default("swamp").describe("Name of the binary to find via which (ignored if localPath set)"),
         remotePath: z.string().default("swamp").describe("Relative path within remoteDir for the binary"),
+        localPath: z.string().default("").describe("Absolute path to a specific binary to copy. Overrides which lookup."),
       }),
       execute: async (args, context) => {
         const { sshHost, sshUser = "root", remoteDir } = context.globalArgs;
@@ -110,12 +126,17 @@ export const model = {
         const logs = [];
         const log = (msg) => logs.push(msg);
 
-        log(`Finding local ${binaryName} binary`);
-        // @ts-ignore - Deno API
-        const whichCmd = new Deno.Command("which", { args: [binaryName] });
-        const whichResult = await whichCmd.output();
-        const localPath = new TextDecoder().decode(whichResult.stdout).trim();
-        if (!localPath) throw new Error(`${binaryName} binary not found on host`);
+        let localPath = args.localPath;
+        if (!localPath) {
+          log(`Finding local ${binaryName} binary`);
+          // @ts-ignore - Deno API
+          const whichCmd = new Deno.Command("which", { args: [binaryName] });
+          const whichResult = await whichCmd.output();
+          localPath = new TextDecoder().decode(whichResult.stdout).trim();
+          if (!localPath) throw new Error(`${binaryName} binary not found on host`);
+        } else {
+          log(`Using explicit localPath ${localPath}`);
+        }
 
         const fullRemotePath = `${remoteDir}/${remotePath}`;
         const remoteParent = fullRemotePath.substring(0, fullRemotePath.lastIndexOf("/"));
@@ -190,6 +211,40 @@ export const model = {
         const handle = await context.writeResource("repo", "auth", {
           remoteDir: context.globalArgs.remoteDir,
           component: "auth",
+          success: true,
+          logs: logs.join("\n"),
+          timestamp: new Date().toISOString(),
+        });
+        return { dataHandles: [handle] };
+      },
+    },
+
+    updateSwamp: {
+      description: "Self-update the swamp binary on the remote host via a glibc container (slate is musl, so the binary needs a glibc runtime to self-replace)",
+      arguments: z.object({
+        binarySubpath: z.string().default("swamp").describe("Path to swamp binary relative to remoteDir"),
+        image: z.string().default("denoland/deno:debian").describe("Glibc-based docker image to run swamp inside"),
+      }),
+      execute: async (args, context) => {
+        const { sshHost, sshUser = "root", remoteDir } = context.globalArgs;
+        if (!isValidSshHost(sshHost)) throw new Error("sshHost is required — is the target VM running?");
+
+        const fullRemotePath = `${remoteDir}/${args.binarySubpath}`;
+        const remoteParent = fullRemotePath.substring(0, fullRemotePath.lastIndexOf("/"));
+        const binaryName = fullRemotePath.substring(fullRemotePath.lastIndexOf("/") + 1);
+        const logs = [];
+        const log = (msg) => logs.push(msg);
+
+        log(`Updating ${sshHost}:${fullRemotePath} via ${args.image}`);
+        // Bind-mount the parent dir (not the file itself) so swamp update's atomic rename lands on host disk.
+        const cmd = `docker run --rm -v ${remoteParent}:/work ${args.image} /work/${binaryName} update`;
+        const result = await sshExec(sshHost, sshUser, cmd);
+        const combined = `${result.stdout}\n${result.stderr}`.trim();
+        log(combined);
+
+        const handle = await context.writeResource("repo", "swamp-update", {
+          remoteDir,
+          component: "swamp-update",
           success: true,
           logs: logs.join("\n"),
           timestamp: new Date().toISOString(),
