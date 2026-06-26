@@ -1,6 +1,6 @@
 manifestVersion: 1
 name: "@keeb/proxmox-manager"
-version: "2026.05.23.1"
+version: "2026.06.12.1"
 description: "Project-specific models for the proxmox-manager homelab (not published — loaded as a local extension source)."
 platforms: []
 labels:
@@ -8,5 +8,6 @@ labels:
   - homelab
 models:
   - curseforge_modpack.ts
+  - event_burst.ts
   - minecraft_serverpack.ts
   - swamp_repo.ts

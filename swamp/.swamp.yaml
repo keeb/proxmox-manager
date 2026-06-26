@@ -5,6 +5,19 @@ vaults:
     type: local_encryption
     config:
       auto_generate: true
-upgradedAt: '2026-02-27T16:10:53.657Z'
+upgradedAt: '2026-05-16T18:25:42.703Z'
 repoId: 921ecec9-12e2-41ca-b70a-0dadb1a19de2
-tool: claude
+driversDir: /home/keeb/git/ssh-driver
+datastore:
+  type: '@keeb/mongodb-datastore'
+  config:
+    uri: >-
+      mongodb://10.0.0.12:27017/?replicaSet=rs0&authSource=admin&directConnection=true
+    username: treehouse
+    passwordEnv: MONGO_PASSWORD
+    database: swamp
+    tenantId: keeb
+    namespace: proxmox-manager
+tools:
+  - claude
+lastSkillMigrationWarning: '2026-06-26T04:32:16.684Z'

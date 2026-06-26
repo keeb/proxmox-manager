@@ -1,0 +1,9 @@
+{
+  "name": "proxmox-manager-swamp-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Node scripts called by swamp extension models (playwright scrapers, etc.)",
+  "dependencies": {
+    "playwright": "^1.60.0"
+  }
+}

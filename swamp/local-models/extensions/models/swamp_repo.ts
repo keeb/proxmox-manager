@@ -16,6 +16,12 @@ const RepoSchema = z.object({
 });
 
 const SWAMP_EXCLUDES = [
+  // Host-local sources config — the local file points at /home/keeb/... source
+  // paths that don't exist on slate. Syncing it shadows slate's pulled
+  // extensions (declares them source-based → source missing → type won't load),
+  // breaking the datastore and every @keeb/* model. Slate runs off pulled
+  // extensions, so it must keep its own (absent) sources file.
+  ".swamp-sources.yaml",
   ".swamp/data/",
   ".swamp/outputs/",
   ".swamp/workflow-runs/",
