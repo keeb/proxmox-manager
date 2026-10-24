@@ -64,6 +64,7 @@ lookup table. Runtime values come from `swamp data get`; model definitions from
 | `collect-game-metrics` | pulled | Collect player metrics from all game servers (runs on slate via cron) |
 | `setup-game-metrics` | pulled | One-time: enable textfile collector on a game server VM (`--input vmName=X`) |
 | `minecraft-install` | pulled | Install a Minecraft server pack on a VM (`--input vmName=X`) |
+| `minecraft-install-ftb` | local | Install an FTB pack via FTB's server installer (`--input vmName=X packId=N versionId=N javaPackage=openjdk25-jre jvmMemory=8G`); pack/version IDs from `api.feed-the-beast.com/v1/modpacks/public/modpack/<id>` |
 | `install-monitoring` | local | Install monitoring agents (node-exporter + promtail) on a VM (`--input vmName=X`) |
 | `setup-monitoring` | pulled | Full monitoring setup: install agents + configure wiring + register with Prometheus (`--input vmName=X`) |
 | `configure-monitoring` | pulled | Configure monitoring wiring (promtail, Prometheus target registration) (`--input vmName=X`) |
@@ -196,6 +197,9 @@ Tag conventions: `["deploy", "<target>"]` for deploys, `["game", "<action>", "<s
 - **calamity** (`docker/compose`) — Terraria Docker services, SSH host from fleet calamity IP
 - **allthemonsMinecraft** (`minecraft/server`) — Minecraft server control, SSH host from fleet allthemons IP
 - **infinityMinecraft** (`minecraft/server`) — Minecraft server control, SSH host from fleet infinity IP
+- **evolution-minecraft** (`minecraft/server`) — FTB Evolution 2 (FTB pack 135, NeoForge 26.1.2, Java 25) on fleet `evolution`; `./run.sh`, JVM heap in `~/game/user_jvm_args.txt`. Public `ftb.keeb.dev` (:25565 via streamProxy), LAN `10.0.0.185:25565`
+- **evolution-ssh** (`ssh/host`) / **evolution-tailscale** (`tailscale/node`) — exec + tailscale install on evolution (authKey from vault `tailscaleAuthKey`)
+- **ftb-evolution-modpack** (`curseforge/modpack`) — slug `ftb-evolution-2`; FTB ships NO CurseForge server pack, so installs go through `minecraft-install-ftb` instead (new definitions must be lowercase kebab-case)
 - **minecraftGame** (`minecraft/server`) — generic Minecraft server, SSH host from fleet (dynamic vmName), paths from workflow inputs
 - **minecraftInstaller** (`minecraft/installer`) — Minecraft server pack installer, SSH host from fleet (dynamic vmName)
 - **calamityTerraria** (`terraria/server`) — Terraria server control, SSH host from fleet calamity IP
