@@ -8,6 +8,11 @@ labels:
   - homelab
 models:
   - curseforge_modpack.ts
+  - debian_preseed.ts
+  - debian_remote_desktop.ts
   - event_burst.ts
   - minecraft_serverpack.ts
+  - proxmox_vm_sendkeys.ts
+  - swamp_activity.ts
   - swamp_repo.ts
+  - tailscale_node_debian.ts
