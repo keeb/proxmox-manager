@@ -21,8 +21,8 @@ const GAME_TYPE_ACTIONS: Record<string, string[]> = {
 };
 
 const MODEL_TYPE_TO_GAME: Record<string, string> = {
-  "@user/minecraft/server": "minecraft",
-  "@user/terraria/server": "terraria",
+  "@keeb/minecraft/server": "minecraft",
+  "@keeb/terraria/server": "terraria",
 };
 
 interface DiscoveredVm {
